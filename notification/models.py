@@ -25,6 +25,7 @@ from django.contrib.contenttypes import generic
 from notification import backends
 from notification.message import encode_message
 from notification.signals import should_deliver
+from notification.utils import permission_by_label
 
 QUEUE_ALL = getattr(settings, "NOTIFICATION_QUEUE_ALL", False)
 
@@ -308,11 +309,7 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
     for user in users:
         if 'observed' in extra_context:
             obj = extra_context['observed']
-            perm = '{app}.{perm}_{mod}'.format(
-                app=obj._meta.app_label,
-                perm='observe_{0}'.format(label),
-                mod=obj._meta.module_name
-            )
+            perm = permission_by_label(obj, label)
             if not user.has_perm(perm, obj):
                 continue
 
@@ -439,6 +436,9 @@ def observe(observed, observer, notice_type_label, signal="post_save"):
     
     To be used by applications to register a user as an observer for some object.
     """
+    perm = permission_by_label(observed, notice_type_label)
+    if not observer.has_perm(perm, observed):
+        raise PermissionDenied()
     notice_type = NoticeType.objects.get(label=notice_type_label)
     observed_item = ObservedItem(
         user=observer, observed_object=observed,
@@ -456,15 +456,24 @@ def stop_observing(observed, observer, signal="post_save"):
     observed_item.delete()
 
 
-def send_observation_notices_for(observed, signal="post_save", extra_context=None):
+def send_observation_notices_for(observed, signal="post_save", extra_context=None, on_site=True):
     """
     Send a notice for each registered user about an observed object.
     """
     if extra_context is None:
         extra_context = {}
     observed_items = ObservedItem.objects.all_for(observed, signal)
-    for observed_item in observed_items:
-        observed_item.send_notice(extra_context)
+    if QUEUE_ALL:
+        users = observed_items.values_list("user", flat=True)
+        extra_context.update({'observed': observed})
+        notices = []
+        for user in users:
+            notices.append((user, signal, extra_context, on_site))
+        NoticeQueueBatch(pickled_data=pickle.dumps(notices).encode("base64")).save()
+
+    else:
+        for observed_item in observed_items:
+            observed_item.send_notice(extra_context)
     return observed_items
 
 
