@@ -149,6 +149,7 @@ class Notice(models.Model):
     unseen = models.BooleanField(_("unseen"), default=True)
     archived = models.BooleanField(_("archived"), default=False)
     on_site = models.BooleanField(_("on site"))
+    notice_uid = models.CharField(max_length=256, null=True, blank=True)
     
     objects = NoticeManager()
     
@@ -176,6 +177,7 @@ class Notice(models.Model):
         ordering = ["-added"]
         verbose_name = _("notice")
         verbose_name_plural = _("notices")
+        unique_together = [('user', 'notice_uid', )]
     
     def get_absolute_url(self):
         return reverse("notification_notice", args=[str(self.pk)])
