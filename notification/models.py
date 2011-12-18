@@ -24,7 +24,7 @@ from django.contrib.contenttypes import generic
 
 from notification import backends
 from notification.message import encode_message
-
+from notification.signals import should_deliver
 
 QUEUE_ALL = getattr(settings, "NOTIFICATION_QUEUE_ALL", False)
 
@@ -139,6 +139,20 @@ class NoticeManager(models.Manager):
         return self.notices_for(sender, **kwargs)
 
 
+class NoticeUid(models.Model):
+    """Prevents duplicates for same object by differents observed items"""
+    recipient = models.ForeignKey(User, related_name="recieved_notices", verbose_name=_("recipient"))
+    uid = models.CharField(max_length=256, null=True, blank=True)
+    
+    def __unicode__(self):
+        return u"{0} - {1}".format(self.recipient, self.notice_uid)
+    
+    class Meta:
+        verbose_name = _("notice uid")
+        verbose_name_plural = _("notice uids")
+        unique_together = [('user', 'notice_uid', )]
+
+
 class Notice(models.Model):
     
     recipient = models.ForeignKey(User, related_name="recieved_notices", verbose_name=_("recipient"))
@@ -149,7 +163,6 @@ class Notice(models.Model):
     unseen = models.BooleanField(_("unseen"), default=True)
     archived = models.BooleanField(_("archived"), default=False)
     on_site = models.BooleanField(_("on site"))
-    notice_uid = models.CharField(max_length=256, null=True, blank=True)
     
     objects = NoticeManager()
     
@@ -177,7 +190,6 @@ class Notice(models.Model):
         ordering = ["-added"]
         verbose_name = _("notice")
         verbose_name_plural = _("notices")
-        unique_together = [('user', 'notice_uid', )]
     
     def get_absolute_url(self):
         return reverse("notification_notice", args=[str(self.pk)])
@@ -273,6 +285,7 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
         extra_context = {}
     
     notice_type = NoticeType.objects.get(label=label)
+    notice_uid = extra_context.get('notice_uid', None)
     
     protocol = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http")
     current_site = Site.objects.get_current()
@@ -293,7 +306,29 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
     ) # TODO make formats configurable
     
     for user in users:
-        recipients = []
+        if 'observed' in extra_context:
+            obj = extra_context['observed']
+            perm = '{app}.{perm}_{mod}'.format(
+                app=obj._meta.app_label,
+                perm='observe_{0}'.format(label),
+                mod=obj._meta.module_name
+            )
+            if not user.has_perm(perm, obj):
+                continue
+
+        if notice_uid:
+            try:
+                NoticeUid.objects.get(uid=notice_uid, user=user)
+                continue
+            except NoticeUid.DoesNotExist:
+                NoticeUid.objects.create(uid=notice_uid, user=user)
+
+        result = {'pass': True}
+        should_deliver.send(sender=Notice, result=result, recipient=user, label=label,
+                            extra_context=extra_context, sender_user=sender)
+        if not result['pass']:
+            continue
+
         # get user language for user from language store defined in
         # NOTIFICATION_LANGUAGE_MODULE setting
         try:

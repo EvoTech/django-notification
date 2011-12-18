@@ -8,6 +8,7 @@ from base import BaseBackend
 
 # mostly for backend compatibility
 default_backends = {
+    "0": ("site", "notification.backends.site.SiteBackend"),
     "1": ("email", "notification.backends.email.EmailBackend"),
 }
 
