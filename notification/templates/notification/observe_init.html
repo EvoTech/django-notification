@@ -1,0 +1,15 @@
+<script type="text/javascript">
+    function notification_observe_toggle(url, el){
+        jQuery.post(url, {csrfmiddlewaretoken: '{{ csrf_token }}'}, function(data) {
+            if (data.success){
+                if(data.observed){
+                    $('span', el).first().css('display', 'none')
+                    $('span', el).end().css('display', 'inline')
+                } else {
+                    $('span', el).first().css('display', 'inline')
+                    $('span', el).end().css('display', 'none')
+                }
+            }
+        }, "json");
+    }
+</script>

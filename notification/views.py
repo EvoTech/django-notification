@@ -23,6 +23,37 @@ def feed_for_user(request):
 
 
 @login_required
+def observe_toggle(request, content_type_id, object_id,
+                     signal, notice_type_label):
+    success = False
+    observing = None
+    try:
+        content_type = ContentType.objects.get(pk=content_type_id)
+        observed = content_type.get_object_for_this_type(pk=object_id)
+        if not is_observing(observed=observed, observer=request.user,
+                            signal=signal):
+            observe(observed=observed,
+                    observer=request.user,
+                    signal=signal,
+                    notice_type_label=notice_type_label)
+            observed = True
+        else:
+            stop_observing(observed=observed,
+                           observer=request.user,
+                           signal=signal)
+            observed = False
+        success = True
+    except:
+        pass
+
+    return HttpResponse(
+        json.dumps({"success": success,  "observed": observed, }),
+        mimetype='application/json; charset=utf-8',
+        status=200
+    )
+
+
+@login_required
 def notices(request):
     """
     The main notices index view.

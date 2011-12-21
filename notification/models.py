@@ -321,8 +321,14 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
                 NoticeUid.objects.create(uid=notice_uid, user=user)
 
         result = {'pass': True}
-        should_deliver.send(sender=Notice, result=result, recipient=user, label=label,
-                            extra_context=extra_context, sender_user=sender)
+        should_deliver.send(
+            sender=Notice,
+            result=result,
+            recipient=user,
+            label=label,
+            extra_context=extra_context,
+            sender_user=sender
+        )
         if not result['pass']:
             continue
 
