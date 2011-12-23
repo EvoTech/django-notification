@@ -9,10 +9,12 @@ from django.core.exceptions import ImproperlyConfigured
 
 from notification import backends
 from notification.message import message_to_text
-from notification.models import Notice
 
 
 class SiteBackend(backends.BaseBackend):
+    """
+    The site backend.
+    """
     spam_sensitivity = 1
         
     def deliver(self, recipient, sender, notice_type, extra_context):
@@ -37,10 +39,11 @@ class SiteBackend(backends.BaseBackend):
         messages = self.get_formatted_messages((
             "notice.html",
         ), notice_type.label, context)
-
+        from notification.models import Notice
         notice = Notice.objects.create(
-            user=user,
-            message=messages['notice.html'],
+            recipient=recipient,
+            sender=sender,
             notice_type=notice_type,
+            message=messages['notice.html'],
             on_site=True,
         )

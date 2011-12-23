@@ -142,8 +142,8 @@ class NoticeManager(models.Manager):
 
 class NoticeUid(models.Model):
     """Prevents duplicates for same object by differents observed items"""
-    recipient = models.ForeignKey(User, related_name="recieved_notices", verbose_name=_("recipient"))
-    uid = models.CharField(max_length=256, null=True, blank=True)
+    recipient = models.ForeignKey(User, related_name="recieved_noticesuid", verbose_name=_("recipient"))
+    notice_uid = models.CharField(max_length=256, null=True, blank=True)
     
     def __unicode__(self):
         return u"{0} - {1}".format(self.recipient, self.notice_uid)
@@ -151,7 +151,7 @@ class NoticeUid(models.Model):
     class Meta:
         verbose_name = _("notice uid")
         verbose_name_plural = _("notice uids")
-        unique_together = [('user', 'notice_uid', )]
+        unique_together = [('recipient', 'notice_uid', )]
 
 
 class Notice(models.Model):
@@ -315,10 +315,10 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
 
         if notice_uid:
             try:
-                NoticeUid.objects.get(uid=notice_uid, user=user)
+                NoticeUid.objects.get(notice_uid=notice_uid, user=user)
                 continue
             except NoticeUid.DoesNotExist:
-                NoticeUid.objects.create(uid=notice_uid, user=user)
+                NoticeUid.objects.create(notice_uid=notice_uid, user=user)
 
         result = {'pass': True}
         should_deliver.send(
