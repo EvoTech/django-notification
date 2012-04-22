@@ -8,7 +8,7 @@ except ImportError:
 from django.db import models
 from django.db.models.query import QuerySet
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.template import Context
