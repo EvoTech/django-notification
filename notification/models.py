@@ -431,6 +431,8 @@ class ObservedItem(models.Model):
     
     # the signal that will be listened to send the notice
     signal = models.TextField(verbose_name=_("signal"))
+    match_filter = models.CharField(_("match filter"), max_length = 255,
+                                    blank = True, null = True)
     
     objects = ObservedItemManager()
     
