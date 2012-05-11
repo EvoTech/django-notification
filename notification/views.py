@@ -1,10 +1,10 @@
-from django.core.urlresolvers import reverse
-from django.shortcuts import render_to_response, get_object_or_404
-from django.http import HttpResponseRedirect, Http404
-from django.template import RequestContext
-
 from django.contrib.auth.decorators import login_required
 from django.contrib.syndication.views import feed
+from django.core.urlresolvers import reverse
+from django.http import HttpResponseRedirect, Http404
+from django.shortcuts import render_to_response, get_object_or_404
+from django.template import RequestContext
+from django.views.decorators.http import require_POST
 
 from notification.models import *
 from notification.decorators import basic_auth_required, simple_basic_auth_callback
@@ -22,6 +22,7 @@ def feed_for_user(request):
     })
 
 
+@require_POST
 @login_required
 def observe_toggle(request, content_type_id, object_id,
                      signal, notice_type_label):
