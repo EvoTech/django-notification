@@ -19,7 +19,7 @@ from django.utils.translation import ugettext, get_language, activate
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 from django.contrib.auth.models import AnonymousUser
-from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.models import ContentType, ContentTypeManager
 from django.contrib.contenttypes import generic
 
 from notification import backends
@@ -307,8 +307,18 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
     ) # TODO make formats configurable
     
     for user in users:
+        # Supports observed object permission
+        # for example "category", "group", "city" etc.
         if 'observed' in extra_context:
             obj = extra_context['observed']
+            perm = permission_by_label(obj, label)
+            if not user.has_perm(perm, obj):
+                continue
+
+        # Supports context object permission
+        # for example "post" or "comment" in observed category, group etc.
+        if 'context_object' in extra_context:
+            obj = extra_context['context_object']
             perm = permission_by_label(obj, label)
             if not user.has_perm(perm, obj):
                 continue
@@ -390,7 +400,7 @@ def queue(users, label, extra_context=None, on_site=True, sender=None):
     NoticeQueueBatch(pickled_data=pickle.dumps(notices).encode("base64")).save()
 
 
-class ObservedItemManager(models.Manager):
+class ObservedItemManager(ContentTypeManager):
     
     def all_for(self, observed, signal):
         """
