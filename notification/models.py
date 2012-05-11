@@ -418,29 +418,32 @@ class ObservedItemManager(ContentTypeManager):
 
 
 class ObservedItem(models.Model):
-    
+
     user = models.ForeignKey(User, verbose_name=_("user"))
-    
+
     content_type = models.ForeignKey(ContentType)
-    object_id = models.PositiveIntegerField()
+    object_id = models.PositiveIntegerField(db_index=True)
     observed_object = generic.GenericForeignKey("content_type", "object_id")
-    
+
     notice_type = models.ForeignKey(NoticeType, verbose_name=_("notice type"))
-    
+
     added = models.DateTimeField(_("added"), default=datetime.datetime.now)
-    
+
     # the signal that will be listened to send the notice
-    signal = models.TextField(verbose_name=_("signal"))
-    match_filter = models.CharField(_("match filter"), max_length = 255,
-                                    blank = True, null = True)
-    
+    signal = models.CharField(
+        verbose_name=_("signal"), max_length = 255, db_index=True
+    )
+    match_filter = models.CharField(
+        _("match filter"), max_length = 255, blank = True, null = True
+    )
+
     objects = ObservedItemManager()
-    
+
     class Meta:
         ordering = ["-added"]
         verbose_name = _("observed item")
         verbose_name_plural = _("observed items")
-    
+
     def send_notice(self, extra_context=None):
         if extra_context is None:
             extra_context = {}
@@ -474,7 +477,9 @@ def stop_observing(observed, observer, signal="post_save"):
     observed_item.delete()
 
 
-def send_observation_notices_for(observed, signal="post_save", extra_context=None, on_site=True):
+def send_observation_notices_for(observed, signal="post_save",
+                                 extra_context=None, on_site=True,
+                                 sender=None):
     """
     Send a notice for each registered user about an observed object.
     """
@@ -482,12 +487,15 @@ def send_observation_notices_for(observed, signal="post_save", extra_context=Non
         extra_context = {}
     observed_items = ObservedItem.objects.all_for(observed, signal)
     if QUEUE_ALL:
-        users = observed_items.values_list("user", flat=True)
+        rows = observed_items.values("user", "notice_type__label")
         extra_context.update({'observed': observed})
         notices = []
-        for user in users:
-            notices.append((user, signal, extra_context, on_site))
-        NoticeQueueBatch(pickled_data=pickle.dumps(notices).encode("base64")).save()
+        for row in rows:
+            notices.append((row["user"], row["notice_type__label"],
+                            extra_context, on_site, sender))
+        NoticeQueueBatch(
+            pickled_data=pickle.dumps(notices).encode("base64")
+        ).save()
 
     else:
         for observed_item in observed_items:
