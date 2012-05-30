@@ -36,7 +36,7 @@ class LanguageStoreNotAvailable(Exception):
 
 class NoticeType(models.Model):
     
-    label = models.CharField(_("label"), max_length=40)
+    label = models.CharField(_("label"), max_length=40, unique=True)
     display = models.CharField(_("display"), max_length=50)
     description = models.CharField(_("description"), max_length=100)
     
@@ -160,10 +160,10 @@ class Notice(models.Model):
     sender = models.ForeignKey(User, null=True, related_name="sent_notices", verbose_name=_("sender"))
     message = models.TextField(_("message"))
     notice_type = models.ForeignKey(NoticeType, verbose_name=_("notice type"))
-    added = models.DateTimeField(_("added"), default=datetime.datetime.now)
-    unseen = models.BooleanField(_("unseen"), default=True)
-    archived = models.BooleanField(_("archived"), default=False)
-    on_site = models.BooleanField(_("on site"))
+    added = models.DateTimeField(_("added"), default=datetime.datetime.now, db_index=True)
+    unseen = models.BooleanField(_("unseen"), default=True, db_index=True)
+    archived = models.BooleanField(_("archived"), default=False, db_index=True)
+    on_site = models.BooleanField(_("on site"), db_index=True)
     
     objects = NoticeManager()
     
@@ -422,12 +422,12 @@ class ObservedItem(models.Model):
     user = models.ForeignKey(User, verbose_name=_("user"))
 
     content_type = models.ForeignKey(ContentType)
-    object_id = models.PositiveIntegerField(db_index=True)
+    object_id = models.CharField(max_length=255, db_index=True)
     observed_object = generic.GenericForeignKey("content_type", "object_id")
 
     notice_type = models.ForeignKey(NoticeType, verbose_name=_("notice type"))
 
-    added = models.DateTimeField(_("added"), default=datetime.datetime.now)
+    added = models.DateTimeField(_("added"), default=datetime.datetime.now, db_index=True)
 
     # the signal that will be listened to send the notice
     signal = models.CharField(
