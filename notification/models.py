@@ -451,8 +451,8 @@ class ObservedItem(models.Model):
     signal = models.CharField(
         verbose_name=_("signal"), max_length = 255, db_index=True
     )
-    match_filter = models.CharField(
-        _("match filter"), max_length = 255, blank = True, null = True
+    match_filter = models.TextField(
+        _("match filter"), blank = True
     )
 
     objects = ObservedItemManager()
