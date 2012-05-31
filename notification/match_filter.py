@@ -7,6 +7,7 @@ def get_field_values(instance):
     return dict([(key, value) for key, value in instance.__dict__.iteritems() if not key.startswith('_')])
 
 
+# TODO: suppports for FK, M2M, O2O, O2M, "OR" conditions, parentheses
 class MatchFilter(object):
     def __init__(self, filters_string=None, fields=None, model=None):
         self.model = model
