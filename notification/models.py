@@ -412,8 +412,8 @@ def queue(users, label, extra_context=None, on_site=True, sender=None):
     if isinstance(users, (QuerySet, RawQuerySet, )):
         users = list(users.values_list("pk", flat=True))
         # users = users.query  # ???
-    elif isinstance(users, (list, tuple, )):
-        users = filter(lambda u: u.pk if isinstance(u, User) else u, users)
+    else:
+        users = map(lambda u: u.pk if isinstance(u, User) else u, users)
     notices = [(users, label, extra_context, on_site, sender, ), ]
     NoticeQueueBatch(pickled_data=pickle.dumps(notices).encode("base64")).save()
 
