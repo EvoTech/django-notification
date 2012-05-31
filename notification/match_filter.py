@@ -1,7 +1,10 @@
-from django.forms.models import model_to_dict
 
-VALID_FILTERS = ('exact', 'startswith', 'endswith', \
-                 'contains')
+VALID_FILTERS = ('exact', 'startswith', 'endswith', 'contains', )
+
+
+def get_field_values(instance):
+    """Returns dict of instance's values."""
+    return dict([(key, value) for key, value in instance.__dict__.iteritems() if not key.startswith('_')])
 
 
 class MatchFilter(object):
@@ -9,7 +12,9 @@ class MatchFilter(object):
         self.model = model
         self.fields = []
 
-        if fields is None and model:
+        if fields:
+            self.fields = fields
+        elif model:
             self.fields = [field.attname for field in model._meta.fields]
         self.filters = self._parse_filters(filters_string)
 
@@ -24,7 +29,7 @@ class MatchFilter(object):
         if isinstance(obj_or_dict, (dict, )):
             obj_dict = obj_or_dict
         else:
-            obj_dict = model_to_dict(obj_or_dict)
+            obj_dict = get_field_values(obj_or_dict)
         for (field, (value, type)) in self.filters.iteritems():
             if type == 'contains':
                 matches = obj_dict[field].find(value) != -1
