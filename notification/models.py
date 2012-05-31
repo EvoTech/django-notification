@@ -26,6 +26,7 @@ from notification import backends
 from notification.message import encode_message
 from notification.signals import should_deliver
 from notification.utils import permission_by_label
+from notification.match_filter import MatchFilter
 
 QUEUE_ALL = getattr(settings, "NOTIFICATION_QUEUE_ALL", False)
 
@@ -489,9 +490,12 @@ def send_observation_notices_for(observed, signal="post_save",
         rows = observed_items.values("user", "notice_type__label")
         extra_context.update({'observed': observed})
         notices = []
+        label_users = {}
         for row in rows:
-            notices.append((row["user"], row["notice_type__label"],
-                            extra_context, on_site, sender))
+            users = label_users.setdefault(row["notice_type__label"], [])
+            users.append(row["user"])
+        for label, users in label_users.iteritems():
+            notices.append((users, label, extra_context, on_site, sender))
         NoticeQueueBatch(
             pickled_data=pickle.dumps(notices).encode("base64")
         ).save()
