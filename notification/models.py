@@ -26,7 +26,6 @@ from notification import backends
 from notification.message import encode_message
 from notification.signals import should_deliver
 from notification.utils import permission_by_label
-from notification.match_filter import MatchFilter
 
 QUEUE_ALL = getattr(settings, "NOTIFICATION_QUEUE_ALL", False)
 
@@ -315,24 +314,6 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
             perm = permission_by_label(observed, label)
             if not user.has_perm(perm, observed):
                 continue
-            signal = extra_context.get('signal')
-            if signal:
-                try:
-                    observed_item = ObservedItem.objects.get_for(
-                        observed, user, signal
-                    )
-                except ObservedItem.DoesNotExist:
-                    # Observed item was deleted
-                    continue
-
-                obj = extra_context.get('context_object', observed)
-                if observed_item.match_filter:
-                    match_filter = MatchFilter(
-                        observed_item.match_filter,
-                        model=obj.__class__
-                    )
-                    if not match_filter.matches(obj):
-                        continue
 
         # Supports context object permission
         # for example "post" or "comment" in observed category, group etc.
@@ -451,9 +432,6 @@ class ObservedItem(models.Model):
     signal = models.CharField(
         verbose_name=_("signal"), max_length = 255, db_index=True
     )
-    match_filter = models.TextField(
-        _("match filter"), blank = True
-    )
 
     objects = ObservedItemManager()
 
@@ -508,7 +486,6 @@ def send_observation_notices_for(observed, signal="post_save",
         rows = observed_items.values("user", "notice_type__label")
         extra_context.update({
             'observed': observed,
-            'signal': signal,
         })
         notices = []
         label_users = {}
