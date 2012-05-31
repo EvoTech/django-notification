@@ -6,7 +6,7 @@ except ImportError:
     import pickle
 
 from django.db import models
-from django.db.models.query import QuerySet
+from django.db.models.query import QuerySet, RawQuerySet
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.core.mail import send_mail
@@ -390,13 +390,12 @@ def queue(users, label, extra_context=None, on_site=True, sender=None):
     """
     if extra_context is None:
         extra_context = {}
-    if isinstance(users, QuerySet):
-        users = [row["pk"] for row in users.values("pk")]
-    else:
-        users = [user.pk for user in users]
-    notices = []
-    for user in users:
-        notices.append((user, label, extra_context, on_site, sender))
+    if isinstance(users, (QuerySet, RawQuerySet, )):
+        users = list(users.values_list("pk", flat=True))
+        # users = users.query  # ???
+    elif isinstance(users, (list, tuple, )):
+        users = filter(lambda u: u.pk if isinstance(u, User) else u, users)
+    notices = [(users, label, extra_context, on_site, sender, ), ]
     NoticeQueueBatch(pickled_data=pickle.dumps(notices).encode("base64")).save()
 
 

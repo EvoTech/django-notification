@@ -45,17 +45,25 @@ def send_all():
         try:
             for queued_batch in NoticeQueueBatch.objects.all():
                 notices = pickle.loads(str(queued_batch.pickled_data).decode("base64"))
-                for user, label, extra_context, on_site, sender in notices:
-                    try:
-                        user = User.objects.get(pk=user)
+                for users, label, extra_context, on_site, sender in notices:
+                    for user in users:
+                        # The instance of QuerySet also can be pickled,
+                        # so, ckecks the instance of user.
+                        if not isinstance(user, (User, )):
+                            try:
+                                logging.info("loading user %s" % (user, ))
+                                user = User.objects.get(pk=user)
+                            except User.DoesNotExist:
+                                # Ignore deleted users, just warn about them
+                                logging.warning("not emitting notice %s to user %s since it does not exist" % (label, user))
+                                continue
+
                         logging.info("emitting notice %s to %s" % (label, user))
                         # call this once per user to be atomic and allow for logging to
                         # accurately show how long each takes.
                         notification.send_now([user], label, extra_context, on_site, sender)
-                    except User.DoesNotExist:
-                        # Ignore deleted users, just warn about them
-                        logging.warning("not emitting notice %s to user %s since it does not exist" % (label, user))
-                    sent += 1
+                        sent += 1
+
                 queued_batch.delete()
                 batches += 1
         except:
