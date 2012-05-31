@@ -18,3 +18,4 @@ Contents:
 .. toctree::
 
     usage
+    observe_complex_of_relations
