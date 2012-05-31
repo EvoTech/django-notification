@@ -1,0 +1,72 @@
+==============================
+Observing complex of relations
+==============================
+
+Use middleware observed point for observing complex of relations, for example, in case::
+
+    category=hospitality equipment and city=Bangkok and type=sale.
+
+Example::
+
+    class Category(models.Model):
+        ...
+
+
+    class City(models.Model):
+        ...
+
+
+    class Type(models.Model):
+        ...
+
+
+    class Ads(models.Model):
+        category = models.ForeignKey(Category, blank=True, null=True)
+        city = models.ForeignKey(City, blank=True, null=True)
+        type = models.ForeignKey(Type, blank=True, null=True)
+        user = models.ForeignKey(User)
+        ...
+
+
+    class ObservedPoint(models.Model):
+        category = models.ForeignKey(Category, blank=True, null=True)
+        city = models.ForeignKey(City, blank=True, null=True)
+        type = models.ForeignKey(Type, blank=True, null=True)
+        ...
+
+
+    def new_ads(sender, instance, **kwargs):
+        if kwargs.get('created'):
+            observed_point = get_or_create(
+                ObservedPoint,
+                category=instance.category,
+                city=instance.city,
+                type=instance.type
+            )
+            send_observation_notices_for(
+                observed_point,
+                signal='new_ads',
+                extra_context={'context_object': instance, },
+                on_site=True,
+                sender=instance.user
+            )
+
+    models.signals.post_save.connect(new_ads, sender=Ads)
+
+
+    def ads_list_view(request, category=None, city=None, type=None):
+        '''View for list of ads.'''
+        category = get_object_or_404(Category, pk=category)
+        city = get_object_or_404(City, pk=city)
+        type = get_object_or_404(Type, pk=type)
+
+        observed_point = get_or_create(
+            ObservedPoint,
+            category=category,
+            city=city,
+            type=type
+        )
+        if reguest.method == 'POST' and request.POST.get('observe'):
+            observe(observed_point, request.user, 'new_ads', 'new_ads')
+        ...
+
