@@ -311,10 +311,28 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
         # Supports observed object permission
         # for example "category", "group", "city" etc.
         if 'observed' in extra_context:
-            obj = extra_context['observed']
-            perm = permission_by_label(obj, label)
-            if not user.has_perm(perm, obj):
+            observed = extra_context['observed']
+            perm = permission_by_label(observed, label)
+            if not user.has_perm(perm, observed):
                 continue
+            signal = extra_context.get('signal')
+            if signal:
+                try:
+                    observed_item = ObservedItem.objects.get_for(
+                        observed, user, signal
+                    )
+                except ObservedItem.DoesNotExist:
+                    # Observed item was deleted
+                    continue
+
+                obj = extra_context.get('context_object', observed)
+                if observed_item.match_filter:
+                    match_filter = MatchFilter(
+                        observed_item.match_filter,
+                        model=obj.__class__
+                    )
+                    if not match_filter.matches(obj):
+                        continue
 
         # Supports context object permission
         # for example "post" or "comment" in observed category, group etc.
@@ -488,7 +506,10 @@ def send_observation_notices_for(observed, signal="post_save",
     observed_items = ObservedItem.objects.all_for(observed, signal)
     if QUEUE_ALL:
         rows = observed_items.values("user", "notice_type__label")
-        extra_context.update({'observed': observed})
+        extra_context.update({
+            'observed': observed,
+            'signal': signal,
+        })
         notices = []
         label_users = {}
         for row in rows:
@@ -518,5 +539,6 @@ def is_observing(observed, observer, signal="post_save"):
         return True
 
 
+# Use carring to pass parameters (context_object, etc.)
 def handle_observations(sender, instance, *args, **kw):
     send_observation_notices_for(instance)
