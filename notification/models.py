@@ -484,9 +484,12 @@ def send_observation_notices_for(observed, signal="post_save",
     observed_items = ObservedItem.objects.all_for(observed, signal)
     if QUEUE_ALL:
         rows = observed_items.values("user", "notice_type__label")
-        extra_context.update({
+        extra_context_updates = {
             'observed': observed,
-        })
+        }
+        if 'context_object' not in extra_context:
+            extra_context_updates['context_object'] = observed
+        extra_context.update(extra_context_updates)
         notices = []
         label_users = {}
         for row in rows:
