@@ -24,7 +24,7 @@ class ObserveLinkTag(Tag):
             'kwa',
             required=False,
             default={'text_observe': _("Observe"),
-                     'text_stop_observation': _("Stop observation"), }
+                     'text_stop_observing': _("Stop observing"), }
         ),
         'as',
         Argument('varname', required=False, resolve=True)
@@ -38,7 +38,7 @@ class ObserveLinkTag(Tag):
             observed = True
 
         result = ''
-        perm = permission_by_label(obj, label)
+        perm = permission_by_label(obj, notice_type)
         allowed = observer.is_authenticated() and observer.has_perm(perm, obj)
 
         if allowed:

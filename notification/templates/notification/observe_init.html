@@ -4,10 +4,10 @@
             if (data.success){
                 if(data.observed){
                     $('span', el).first().css('display', 'none')
-                    $('span', el).end().css('display', 'inline')
+                    $('span', el).last().css('display', 'inline')
                 } else {
                     $('span', el).first().css('display', 'inline')
-                    $('span', el).end().css('display', 'none')
+                    $('span', el).last().css('display', 'none')
                 }
             }
         }, "json");

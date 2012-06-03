@@ -325,10 +325,10 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
 
         if notice_uid:
             try:
-                NoticeUid.objects.get(notice_uid=notice_uid, user=user)
+                NoticeUid.objects.get(notice_uid=notice_uid, recipient=user)
                 continue
             except NoticeUid.DoesNotExist:
-                NoticeUid.objects.create(notice_uid=notice_uid, user=user)
+                NoticeUid.objects.create(notice_uid=notice_uid, recipient=user)
 
         result = {'pass': True}
         should_deliver.send(

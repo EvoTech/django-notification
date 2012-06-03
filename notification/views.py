@@ -1,7 +1,8 @@
+import json
 from django.contrib.auth.decorators import login_required
 from django.contrib.syndication.views import feed
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect, Http404
+from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
 from django.views.decorators.http import require_POST
@@ -35,8 +36,8 @@ def observe_toggle(request, content_type_id, object_id,
                             signal=signal):
             observe(observed=observed,
                     observer=request.user,
-                    signal=signal,
-                    notice_type_label=notice_type_label)
+                    notice_type_label=notice_type_label,
+                    signal=signal)
             observed = True
         else:
             stop_observing(observed=observed,
