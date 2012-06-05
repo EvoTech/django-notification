@@ -21,7 +21,7 @@ class EmailBackend(backends.BaseBackend):
     
     def can_send(self, user, notice_type):
         can_send = super(EmailBackend, self).can_send(user, notice_type)
-        if can_send and user.email:
+        if can_send and user.email and '@' in user.email and not user.email.startswith('__'):
             return True
         return False
         

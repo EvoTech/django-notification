@@ -307,21 +307,10 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
     ) # TODO make formats configurable
     
     for user in users:
-        # Supports observed object permission
-        # for example "category", "group", "city" etc.
-        if 'observed' in extra_context:
-            observed = extra_context['observed']
-            perm = permission_by_label(observed, label)
-            if not user.has_perm(perm, observed):
-                continue
-
-        # Supports context object permission
-        # for example "post" or "comment" in observed category, group etc.
-        if 'context_object' in extra_context:
-            obj = extra_context['context_object']
-            perm = permission_by_label(obj, label)
-            if not user.has_perm(perm, obj):
-                continue
+        obj = extra_context.get('context_object',
+                                extra_context.get('observed', None))
+        if obj and not user.has_perm(permission_by_label(obj, 'view'), obj):
+            continue
 
         if notice_uid:
             try:
@@ -453,7 +442,7 @@ def observe(observed, observer, notice_type_label, signal="post_save"):
     
     To be used by applications to register a user as an observer for some object.
     """
-    perm = permission_by_label(observed, notice_type_label)
+    perm = permission_by_label(observed, 'view')
     if not observer.has_perm(perm, observed):
         raise PermissionDenied()
     notice_type = NoticeType.objects.get(label=notice_type_label)
@@ -484,12 +473,7 @@ def send_observation_notices_for(observed, signal="post_save",
     observed_items = ObservedItem.objects.all_for(observed, signal)
     if QUEUE_ALL:
         rows = observed_items.values("user", "notice_type__label")
-        extra_context_updates = {
-            'observed': observed,
-        }
-        if 'context_object' not in extra_context:
-            extra_context_updates['context_object'] = observed
-        extra_context.update(extra_context_updates)
+        extra_context.update({'observed': observed, })
         notices = []
         label_users = {}
         for row in rows:

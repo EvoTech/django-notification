@@ -38,7 +38,7 @@ class ObserveLinkTag(Tag):
             observed = True
 
         result = ''
-        perm = permission_by_label(obj, notice_type)
+        perm = permission_by_label(obj, 'view')
         allowed = observer.is_authenticated() and observer.has_perm(perm, obj)
 
         if allowed:
