@@ -481,9 +481,10 @@ def send_observation_notices_for(observed, signal="post_save",
             users.append(row["user"])
         for label, users in label_users.iteritems():
             notices.append((users, label, extra_context, on_site, sender))
-        NoticeQueueBatch(
-            pickled_data=pickle.dumps(notices).encode("base64")
-        ).save()
+        if notices:
+            NoticeQueueBatch(
+                pickled_data=pickle.dumps(notices).encode("base64")
+            ).save()
 
     else:
         for observed_item in observed_items:
