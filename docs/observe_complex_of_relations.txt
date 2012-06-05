@@ -70,3 +70,8 @@ Example::
             observe(observed_point, request.user, 'new_ads', 'new_ads')
         ...
 
+Observing all objects of specified model.
+=========================================
+
+You can observe instace of django.contrib.contenttypes.models.ContentType,
+if you want to receive notices for all instances of specified model.
