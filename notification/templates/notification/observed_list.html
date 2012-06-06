@@ -1,0 +1,45 @@
+{% extends "notification/base.html" %}
+
+{% load humanize %}
+{% load i18n %}
+{% load pagination_tags %}
+{% load timezone_filters %}
+{% load notification_observe_tags %}
+
+{% block head_title %}{% trans "Observed objects" %}{% endblock %}
+
+{% block extra_head %}
+    {% include "notification/observe_init.html" %}
+{% endblock %}
+
+{% block body %}
+    
+    <h1>{% trans "Notices" %}</h1>
+    
+    {% autopaginate object_list %}
+    
+    {% if object_list %}
+        
+        {% for item in object_list %}
+            {% ifchanged item.added|date:"Y-M-d" %}
+                <h2 class="notice_date">{{ item.added|naturalday:_("DATE_FORMAT")|capfirst }}</h2>
+            {% endifchanged %}
+            <div class="notice">
+            {% if item.observed_object %}
+                <span class="notice-observed-object">
+                    "<a href="{{ item.observed_object.get_absolute_url }}">{{ item.observed_object }}</a>"
+                    [{% observe_link item.observed_object item.signal item.notice_type.label %}]
+                </span>
+                <span class="notice_type">[{% trans item.notice_type.display %}]</span>
+                <span class="notice_time">{{ item.added|localtime:account.timezone|time:"P" }}</span>
+            {% endif %}
+            </div>
+        {% endfor %}
+        
+        {% paginate %}
+        
+    {% else %}
+        <p>{% trans "Not observed objects." %}</p>
+    {% endif %}
+    
+{% endblock %}
