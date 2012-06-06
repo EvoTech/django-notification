@@ -19,7 +19,7 @@ from django.utils.translation import ugettext, get_language, activate
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 from django.contrib.auth.models import AnonymousUser
-from django.contrib.contenttypes.models import ContentType, ContentTypeManager
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 
 from notification import backends
@@ -388,7 +388,7 @@ def queue(users, label, extra_context=None, on_site=True, sender=None):
     NoticeQueueBatch(pickled_data=pickle.dumps(notices).encode("base64")).save()
 
 
-class ObservedItemManager(ContentTypeManager):
+class ObservedItemManager(models.Manager):
     
     def all_for(self, observed, signal):
         """

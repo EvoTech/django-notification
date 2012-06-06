@@ -56,6 +56,23 @@ def observe_toggle(request, content_type_id, object_id,
 
 
 @login_required
+def observed_list(request):
+    """List of observed objects view."""
+    object_list = ObservedItem.objects.filter(
+        user=request.user
+    ).order_by("-added")
+    for item in object_list:
+        if not item.observed_object:
+            item.delete()
+    object_list = ObservedItem.objects.filter(
+        user=request.user
+    ).order_by("-added")
+    return render_to_response("notification/observed_list.html", {
+        "object_list": object_list,
+    }, context_instance=RequestContext(request))
+
+
+@login_required
 def notices(request):
     """
     The main notices index view.
