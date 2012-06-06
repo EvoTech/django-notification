@@ -39,7 +39,9 @@ class ObserveLinkTag(Tag):
 
         result = ''
         perm = permission_by_label(obj, 'view')
-        allowed = observer.is_authenticated() and observer.has_perm(perm, obj)
+        allowed = observer.is_authenticated() and (
+            observer.has_perm(perm, obj) or observed  # Can stop oserving for closed observed object
+        )
 
         if allowed:
             local_context = copy.copy(context)
