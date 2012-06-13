@@ -2,7 +2,7 @@
     function notification_observe_toggle(url, el){
         jQuery.post(url, {csrfmiddlewaretoken: '{{ csrf_token }}'}, function(data) {
             if (data.success){
-                if(data.observed){
+                if(data.observing){
                     $('span', el).first().css('display', 'none')
                     $('span', el).last().css('display', 'inline')
                 } else {

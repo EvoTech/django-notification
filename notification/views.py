@@ -38,18 +38,18 @@ def observe_toggle(request, content_type_id, object_id,
                     observer=request.user,
                     notice_type_label=notice_type_label,
                     signal=signal)
-            observed = True
+            observing = True
         else:
             stop_observing(observed=observed,
                            observer=request.user,
                            signal=signal)
-            observed = False
+            observing = False
         success = True
     except:
         pass
 
     return HttpResponse(
-        json.dumps({"success": success,  "observed": observed, }),
+        json.dumps({"success": success,  "observing": observing, }),
         mimetype='application/json; charset=utf-8',
         status=200
     )
