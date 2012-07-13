@@ -443,7 +443,7 @@ def observe(observed, observer, notice_type_label, signal="post_save"):
     To be used by applications to register a user as an observer for some object.
     """
     perm = permission_by_label(observed, 'view')
-    if not observer.has_perm(perm, observed):
+    if not (observer.is_authenticated() and observer.has_perm(perm, observed)):
         raise PermissionDenied()
     notice_type = NoticeType.objects.get(label=notice_type_label)
     observed_item = ObservedItem(
