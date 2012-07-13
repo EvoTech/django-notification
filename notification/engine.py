@@ -77,6 +77,8 @@ def send_all():
             # log it as critical
             logging.critical("an exception occurred: %r" % e)
     finally:
+        if notification.NoticeUid.objects.all().count() > 5000000:
+            notification.NoticeUid.objects.all().delete()
         logging.debug("releasing lock...")
         lock.release()
         logging.debug("released.")
