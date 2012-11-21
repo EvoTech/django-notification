@@ -27,7 +27,7 @@ class ObserveLinkTag(Tag):
                      'text_stop_observing': _("Stop observing"), }
         ),
         'as',
-        Argument('varname', required=False, resolve=True)
+        Argument('varname', required=False, resolve=False)
     )
 
     def render_tag(self, context, obj, signal, notice_type, kwa, varname):
