@@ -1,3 +1,4 @@
+from __future__ import absolute_import, unicode_literals
 import datetime
 
 try:
@@ -27,6 +28,15 @@ from notification.message import encode_message
 from notification.signals import should_deliver
 from notification.utils import permission_by_label
 
+try:
+    str = unicode  # Python 2.* compatible
+    str_types = ()
+    string_types = (basestring,)
+    integer_types = (int, long)
+except NameError:
+    string_types = (str,)
+    integer_types = (int,)
+
 QUEUE_ALL = getattr(settings, "NOTIFICATION_QUEUE_ALL", False)
 
 
@@ -43,7 +53,7 @@ class NoticeType(models.Model):
     # by default only on for media with sensitivity less than or equal to this number
     default = models.IntegerField(_("default"))
     
-    def __unicode__(self):
+    def __str__(self):
         return self.label
     
     class Meta:
@@ -55,7 +65,7 @@ NOTIFICATION_BACKENDS = backends.load_backends()
 
 NOTICE_MEDIA = []
 NOTICE_MEDIA_DEFAULTS = {}
-for key, backend in NOTIFICATION_BACKENDS.items():
+for key, backend in list(NOTIFICATION_BACKENDS.items()):
     # key is a tuple (medium_id, backend_label)
     NOTICE_MEDIA.append(key)
     NOTICE_MEDIA_DEFAULTS[key[0]] = backend.spam_sensitivity
@@ -145,8 +155,8 @@ class NoticeUid(models.Model):
     recipient = models.ForeignKey(User, related_name="recieved_noticesuid", verbose_name=_("recipient"))
     notice_uid = models.CharField(max_length=256, null=True, blank=True)
     
-    def __unicode__(self):
-        return u"{0} - {1}".format(self.recipient, self.notice_uid)
+    def __str__(self):
+        return "{0} - {1}".format(self.recipient, self.notice_uid)
     
     class Meta:
         verbose_name = _("notice uid")
@@ -167,7 +177,7 @@ class Notice(models.Model):
     
     objects = NoticeManager()
     
-    def __unicode__(self):
+    def __str__(self):
         return self.message
     
     def archive(self):
@@ -225,11 +235,11 @@ def create_notice_type(label, display, description, default=2, verbosity=1):
         if updated:
             notice_type.save()
             if verbosity > 1:
-                print "Updated %s NoticeType" % label
+                print("Updated %s NoticeType" % label)
     except NoticeType.DoesNotExist:
         NoticeType(label=label, display=display, description=description, default=default).save()
         if verbosity > 1:
-            print "Created %s NoticeType" % label
+            print("Created %s NoticeType" % label)
 
 
 def get_notification_language(user):
@@ -291,9 +301,9 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
     protocol = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http")
     current_site = Site.objects.get_current()
     
-    notices_url = u"%s://%s%s" % (
+    notices_url = "%s://%s%s" % (
         protocol,
-        unicode(current_site),
+        str(current_site),
         reverse("notification_notices"),
     )
     
@@ -342,7 +352,7 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
             # activate the user's language
             activate(language)
         
-        for backend in NOTIFICATION_BACKENDS.values():
+        for backend in list(NOTIFICATION_BACKENDS.values()):
             if backend.can_send(user, notice_type):
                 backend.deliver(user, sender, notice_type, extra_context)
     
@@ -379,11 +389,11 @@ def queue(users, label, extra_context=None, on_site=True, sender=None):
     """
     if extra_context is None:
         extra_context = {}
-    if isinstance(users, (QuerySet, RawQuerySet, )):
+    if isinstance(users, (QuerySet, RawQuerySet )):
         users = list(users.values_list("pk", flat=True))
         # users = users.query  # ???
     else:
-        users = map(lambda u: u.pk if isinstance(u, User) else u, users)
+        users = [u.pk if isinstance(u, User) else u for u in users]
     notices = [(users, label, extra_context, on_site, sender, ), ]
     NoticeQueueBatch(pickled_data=pickle.dumps(notices).encode("base64")).save()
 
@@ -479,7 +489,7 @@ def send_observation_notices_for(observed, signal="post_save",
         for row in rows:
             users = label_users.setdefault(row["notice_type__label"], [])
             users.append(row["user"])
-        for label, users in label_users.iteritems():
+        for label, users in label_users.items():
             notices.append((users, label, extra_context, on_site, sender))
         if notices:
             NoticeQueueBatch(
@@ -507,3 +517,13 @@ def is_observing(observed, observer, signal="post_save"):
 # Use carring to pass parameters (context_object, etc.)
 def handle_observations(sender, instance, *args, **kw):
     send_observation_notices_for(instance)
+
+# Python 2.* compatible
+try:
+    unicode
+except NameError:
+    pass
+else:
+    for cls in (NoticeType, NoticeUid, Notice, ):
+        cls.__unicode__ = cls.__str__
+        cls.__str__ = lambda self: self.__unicode__().encode('utf-8')

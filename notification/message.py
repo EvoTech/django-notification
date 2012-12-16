@@ -1,3 +1,4 @@
+from __future__ import absolute_import, unicode_literals
 from django.db.models import get_model
 from django.utils.translation import ugettext
 
@@ -32,7 +33,7 @@ def encode_message(message_template, objects):
     if isinstance(objects, list) or isinstance(objects, tuple):
         return message_template % tuple(encode_object(obj) for obj in objects)
     if type(objects) is dict:
-        return message_template % dict((name, encode_object(obj, name)) for name, obj in objects.iteritems())
+        return message_template % dict((name, encode_object(obj, name)) for name, obj in objects.items())
     return ""
 
 
@@ -92,7 +93,7 @@ def decode_message(message, decoder):
 def message_to_text(message):
     def decoder(ref):
         obj, msgid = decode_object(ref)
-        return unicode(obj), msgid
+        return str(obj), msgid
     return decode_message(message, decoder)
 
 
@@ -100,8 +101,8 @@ def message_to_html(message):
     def decoder(ref):
         obj, msgid = decode_object(ref)
         if hasattr(obj, "get_absolute_url"): # don't fail silenty if get_absolute_url hasn't been defined
-            return u"""<a href="%s">%s</a>""" % (obj.get_absolute_url(), unicode(obj)), msgid
+            return """<a href="%s">%s</a>""" % (obj.get_absolute_url(), str(obj)), msgid
         else:
-            return unicode(obj), msgid
+            return str(obj), msgid
     return decode_message(message, decoder)
     

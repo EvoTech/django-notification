@@ -1,8 +1,10 @@
+from __future__ import absolute_import, unicode_literals
 from django.utils.translation import ugettext as _
 from django.http import HttpResponse
 from django.conf import settings
 
 from django.contrib.auth import authenticate, login
+import collections
 
 
 def simple_basic_auth_callback(request, user, *args, **kwargs):
@@ -53,7 +55,7 @@ def basic_auth_required(realm=None, test_func=None, callback_func=None):
                     user = authenticate(username=username, password=password)
                     if user is not None:
                         if user.is_active:
-                            if callback_func is not None and callable(callback_func):
+                            if callback_func is not None and isinstance(callback_func, collections.Callable):
                                 callback_func(request, user, *args, **kwargs)
                             return view_func(request, *args, **kwargs)
             

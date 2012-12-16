@@ -1,3 +1,4 @@
+from __future__ import absolute_import, unicode_literals
 """
 lockfile.py - Platform-independent advisory file locks.
 
@@ -47,16 +48,35 @@ Exceptions:
             NotMyLock - File was locked but not by the current thread/process
 """
 
-from __future__ import division
+
 
 import sys
 import socket
 import os
-import thread
 import threading
 import time
 import errno
-import urllib
+
+try:
+    from urllib import parse
+except ImportError:     # Python 2
+    import urllib as parse
+    import urlparse
+    parse.urlparse = urlparse.urlparse
+
+try:
+    import _thread
+except ImportError:
+    import thread as _thread
+
+try:
+    str = unicode  # Python 2.* compatible
+    str_types = ()
+    string_types = (basestring,)
+    integer_types = (int, long)
+except NameError:
+    string_types = (str,)
+    integer_types = (int,)
 
 # Work with PEP8 and non-PEP8 versions of threading module.
 if not hasattr(threading, "current_thread"):
@@ -164,7 +184,7 @@ class LockBase:
         self.pid = os.getpid()
         if threaded:
             name = threading.current_thread().get_name()
-            tname = "%s-" % urllib.quote(name, safe="")
+            tname = "%s-" % parse.quote(name, safe="")
         else:
             tname = ""
         dirname = os.path.dirname(self.lock_file)
@@ -294,7 +314,7 @@ class MkdirFileLock(LockBase):
         """
         LockBase.__init__(self, path, threaded)
         if threaded:
-            tname = "%x-" % thread.get_ident()
+            tname = "%x-" % _thread.get_ident()
         else:
             tname = ""
         # Lock file itself is a directory.  Place the unique file name into
@@ -370,8 +390,8 @@ class SQLiteFileLock(LockBase):
 
     def __init__(self, path, threaded=True):
         LockBase.__init__(self, path, threaded)
-        self.lock_file = unicode(self.lock_file)
-        self.unique_name = unicode(self.unique_name)
+        self.lock_file = str(self.lock_file)
+        self.unique_name = str(self.unique_name)
 
         import sqlite3
         self.connection = sqlite3.connect(SQLiteFileLock.testdb)

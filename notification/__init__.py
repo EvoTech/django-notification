@@ -1,3 +1,4 @@
+from __future__ import absolute_import, unicode_literals
 VERSION = (0, 2, 0, "a", 1) # following PEP 386
 DEV_N = 4
 

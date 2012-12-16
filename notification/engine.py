@@ -1,3 +1,4 @@
+from __future__ import absolute_import, unicode_literals
 import sys
 import time
 import logging
@@ -13,7 +14,7 @@ from django.core.mail import mail_admins
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 
-from lockfile import FileLock, AlreadyLocked, LockTimeout
+from .lockfile import FileLock, AlreadyLocked, LockTimeout
 
 from notification.models import NoticeQueueBatch
 from notification import models as notification
@@ -49,7 +50,7 @@ def send_all():
                     for user in users:
                         # The instance of QuerySet also can be pickled,
                         # so, ckecks the instance of user.
-                        if not isinstance(user, (User, )):
+                        if not isinstance(user, User):
                             try:
                                 logging.info("loading user %s" % (user, ))
                                 user = User.objects.get(pk=user)
