@@ -66,8 +66,8 @@ def get_tag_uri(url, date):
     parts = urlparse.urlparse(url)
     date_part = ""
     if date is not None:
-        date_part = ",%s:" % date.strftime("%Y-%m-%d")
-    return "tag:%s%s%s/%s" % (
+        date_part = ",{0}:".format(date.strftime("%Y-%m-%d"))
+    return "tag:{0}{1}{2}/{3}".format(
         parts.hostname,
         date_part,
         parts.path,

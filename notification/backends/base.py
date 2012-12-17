@@ -38,6 +38,6 @@ class BaseBackend(object):
             if format.endswith(".txt"):
                 context.autoescape = False
             format_templates[format] = render_to_string((
-                "notification/%s/%s" % (label, format),
-                "notification/%s" % format), context_instance=context)
+                "notification/{0}/{1}".format(label, format),
+                "notification/{0}".format(format)), context_instance=context)
         return format_templates

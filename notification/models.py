@@ -235,11 +235,11 @@ def create_notice_type(label, display, description, default=2, verbosity=1):
         if updated:
             notice_type.save()
             if verbosity > 1:
-                print("Updated %s NoticeType" % label)
+                print("Updated {0} NoticeType".format(label))
     except NoticeType.DoesNotExist:
         NoticeType(label=label, display=display, description=description, default=default).save()
         if verbosity > 1:
-            print("Created %s NoticeType" % label)
+            print("Created {0} NoticeType".format(label))
 
 
 def get_notification_language(user):
@@ -273,8 +273,8 @@ def get_formatted_messages(formats, label, context):
         else:
             context.autoescape = True
         format_templates[format] = render_to_string((
-            "notification/%s/%s" % (label, format),
-            "notification/%s" % format), context_instance=context)
+            "notification/{0}/{1}".format(label, format),
+            "notification/{0}".format(format)), context_instance=context)
     return format_templates
 
 
@@ -301,7 +301,7 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
     protocol = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http")
     current_site = Site.objects.get_current()
     
-    notices_url = "%s://%s%s" % (
+    notices_url = "{0}://{1}{2}".format(
         protocol,
         str(current_site),
         reverse("notification_notices"),

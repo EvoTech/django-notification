@@ -18,7 +18,7 @@ def feed_for_user(request):
     """
     An atom feed for all unarchived :model:`notification.Notice`s for a user.
     """
-    url = "feed/%s" % request.user.username
+    url = "feed/{0}".format(request.user.username)
     return feed(request, url, {
         "feed": NoticeUserFeed,
     })
@@ -118,7 +118,7 @@ def notice_settings(request):
     for notice_type in notice_types:
         settings_row = []
         for medium_id, medium_display in NOTICE_MEDIA:
-            form_label = "%s_%s" % (notice_type.label, medium_id)
+            form_label = "{0}_{1}".format(notice_type.label, medium_id)
             setting = get_notification_setting(request.user, notice_type, medium_id)
             if request.method == "POST":
                 if request.POST.get(form_label) == "on":

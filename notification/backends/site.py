@@ -20,6 +20,8 @@ except NameError:
     string_types = (str,)
     integer_types = (int,)
 
+DEFAULT_HTTP_PROTOCOL = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http")
+
 
 class SiteBackend(backends.BaseBackend):
     """
@@ -30,7 +32,8 @@ class SiteBackend(backends.BaseBackend):
     def deliver(self, recipient, sender, notice_type, extra_context):
         # TODO: require this to be passed in extra_context
         current_site = Site.objects.get_current()
-        notices_url = "http://%s%s" % (
+        notices_url = "{0}://{1}{2}".format(
+            DEFAULT_HTTP_PROTOCOL,
             str(Site.objects.get_current()),
             reverse("notification_notices"),
         )

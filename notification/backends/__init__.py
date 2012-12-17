@@ -30,7 +30,7 @@ def load_backends():
             __import__(backend_mod)
             mod = sys.modules[backend_mod]
         except ImportError as e:
-            raise exceptions.ImproperlyConfigured('Error importing notification backend %s: "%s"' % (backend_mod, e))
+            raise exceptions.ImproperlyConfigured('Error importing notification backend {0}: "{1}"'.format(backend_mod, e))
         # add the backend label and an instantiated backend class to the
         # backends list.
         backend_instance = getattr(mod, backend_class)(medium_id, spam_sensitivity)

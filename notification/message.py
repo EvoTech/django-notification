@@ -21,10 +21,10 @@ from django.utils.translation import ugettext
 # text and html version of the message respectively.
 
 def encode_object(obj, name=None):
-    encoded = "%s.%s.%s" % (obj._meta.app_label, obj._meta.object_name, obj.pk)
+    encoded = "{0}.{1}.{2}".format(obj._meta.app_label, obj._meta.object_name, obj.pk)
     if name:
-        encoded = "%s.%s" % (encoded, name)
-    return "{%s}" % encoded
+        encoded = "{0}.{1}".format(encoded, name)
+    return "{{{0}}}".format(encoded)
 
 
 def encode_message(message_template, objects):
@@ -101,7 +101,7 @@ def message_to_html(message):
     def decoder(ref):
         obj, msgid = decode_object(ref)
         if hasattr(obj, "get_absolute_url"): # don't fail silenty if get_absolute_url hasn't been defined
-            return """<a href="%s">%s</a>""" % (obj.get_absolute_url(), str(obj)), msgid
+            return """<a href="{0}">{1}</a>""".format(obj.get_absolute_url(), str(obj)), msgid
         else:
             return str(obj), msgid
     return decode_message(message, decoder)

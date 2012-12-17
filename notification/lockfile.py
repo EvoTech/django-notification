@@ -184,14 +184,16 @@ class LockBase:
         self.pid = os.getpid()
         if threaded:
             name = threading.current_thread().get_name()
-            tname = "%s-" % parse.quote(name, safe="")
+            tname = "{0}-".format(parse.quote(name, safe=""))
         else:
             tname = ""
         dirname = os.path.dirname(self.lock_file)
-        self.unique_name = os.path.join(dirname,
-                                        "%s.%s%s" % (self.hostname,
-                                                     tname,
-                                                     self.pid))
+        self.unique_name = os.path.join(
+            dirname,
+            "{0}.{1}{2}".format(
+                self.hostname, tname, self.pid
+            )
+        )
 
     def acquire(self, timeout=None):
         """
@@ -255,7 +257,7 @@ class LinkFileLock(LockBase):
         try:
             open(self.unique_name, "wb").close()
         except IOError:
-            raise LockFailed("failed to create %s" % self.unique_name)
+            raise LockFailed("failed to create {0}".format(self.unique_name))
 
         end_time = time.time()
         if timeout is not None and timeout > 0:
@@ -314,15 +316,17 @@ class MkdirFileLock(LockBase):
         """
         LockBase.__init__(self, path, threaded)
         if threaded:
-            tname = "%x-" % _thread.get_ident()
+            tname = "{0:x}-".format(_thread.get_ident())
         else:
             tname = ""
         # Lock file itself is a directory.  Place the unique file name into
         # it.
-        self.unique_name  = os.path.join(self.lock_file,
-                                         "%s.%s%s" % (self.hostname,
-                                                      tname,
-                                                      self.pid))
+        self.unique_name  = os.path.join(
+            self.lock_file,
+            "{0}.{1}{2}".format(
+                self.hostname, tname, self.pid
+            )
+        )
 
     def acquire(self, timeout=None):
         end_time = time.time()
@@ -353,7 +357,7 @@ class MkdirFileLock(LockBase):
                     time.sleep(wait)
                 else:
                     # Couldn't create the lock for some other reason
-                    raise LockFailed("failed to create %s" % self.lock_file)
+                    raise LockFailed("failed to create {0}".format(self.lock_file))
             else:
                 open(self.unique_name, "wb").close()
                 return

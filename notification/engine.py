@@ -52,14 +52,14 @@ def send_all():
                         # so, ckecks the instance of user.
                         if not isinstance(user, User):
                             try:
-                                logging.info("loading user %s" % (user, ))
+                                logging.info("loading user {0}".format(user))
                                 user = User.objects.get(pk=user)
                             except User.DoesNotExist:
                                 # Ignore deleted users, just warn about them
-                                logging.warning("not emitting notice %s to user %s since it does not exist" % (label, user))
+                                logging.warning("not emitting notice {0} to user %s since it does not exist".format(label, user))
                                 continue
 
-                        logging.info("emitting notice %s to %s" % (label, user))
+                        logging.info("emitting notice {0} to {1}".format(label, user))
                         # call this once per user to be atomic and allow for logging to
                         # accurately show how long each takes.
                         notification.send_now([user], label, extra_context, on_site, sender)
@@ -72,11 +72,11 @@ def send_all():
             exc_class, e, t = sys.exc_info()
             # email people
             current_site = Site.objects.get_current()
-            subject = "[%s emit_notices] %r" % (current_site.name, e)
-            message = "%s" % ("\n".join(traceback.format_exception(*sys.exc_info())),)
+            subject = "[{0} emit_notices] {1!r}".format(current_site.name, e)
+            message = "{0}".format("\n".join(traceback.format_exception(*sys.exc_info())),)
             mail_admins(subject, message, fail_silently=True)
             # log it as critical
-            logging.critical("an exception occurred: %r" % e)
+            logging.critical("an exception occurred: {0!r}".format(e))
     finally:
         if notification.NoticeUid.objects.all().count() > 5000000:
             notification.NoticeUid.objects.all().delete()
@@ -85,5 +85,5 @@ def send_all():
         logging.debug("released.")
     
     logging.info("")
-    logging.info("%s batches, %s sent" % (batches, sent,))
-    logging.info("done in %.2f seconds" % (time.time() - start_time))
+    logging.info("{0} batches, {1} sent".format(batches, sent))
+    logging.info("done in {0:.2f} seconds".format(time.time() - start_time))

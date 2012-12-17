@@ -21,7 +21,7 @@ DEFAULT_HTTP_PROTOCOL = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http")
 class BaseNoticeFeed(Feed):
     
     def item_id(self, notification):
-        return "%s://%s%s" % (
+        return "{0}://{1}{2}".format(
             DEFAULT_HTTP_PROTOCOL,
             Site.objects.get_current().domain,
             notification.get_absolute_url(),
@@ -52,7 +52,7 @@ class NoticeUserFeed(BaseNoticeFeed):
         return get_object_or_404(User, username=params[0].lower())
     
     def feed_id(self, user):
-        return "%s://%s%s" % (
+        return "{0}://{1}{2}".format(
             DEFAULT_HTTP_PROTOCOL,
             Site.objects.get_current().domain,
             reverse("notification_feed_for_user"),
@@ -71,7 +71,7 @@ class NoticeUserFeed(BaseNoticeFeed):
         return qs.latest("added").added
     
     def feed_links(self, user):
-        complete_url = "%s://%s%s" % (
+        complete_url = "{0}://{1}{2}".format(
             DEFAULT_HTTP_PROTOCOL,
             Site.objects.get_current().domain,
             reverse("notification_notices"),
