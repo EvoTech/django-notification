@@ -18,7 +18,6 @@ from notification.message import message_to_text
 
 try:
     str = unicode  # Python 2.* compatible
-    str_types = ()
     string_types = (basestring,)
     integer_types = (int, long)
 except NameError:
