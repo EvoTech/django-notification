@@ -19,7 +19,7 @@
     }
     $(function(){
         $('.notification-observe-link').each(function(i, el){
-            $(el).trigger('observe_init', [$('span', el).last().is(":visible")]);
+            $(el).trigger('observe_created', [$('span', el).last().is(":visible")]);
         });
     });
 </script>
