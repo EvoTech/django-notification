@@ -2,15 +2,24 @@
     function notification_observe_toggle(url, el){
         jQuery.post(url, {csrfmiddlewaretoken: '{{ csrf_token }}'}, function(data) {
             if (data.success){
-                if(data.observing){
-                    $('span', el).first().css('display', 'none')
-                    $('span', el).last().css('display', 'inline')
-                } else {
-                    $('span', el).first().css('display', 'inline')
-                    $('span', el).last().css('display', 'none')
+                var event = jQuery.Event('observe_toggle');
+                $(el).trigger(event, [data.observing]);
+                if (!event.isDefaultPrevented()) {
+                    if(data.observing){
+                        $('span', el).first().css('display', 'none')
+                        $('span', el).last().css('display', 'inline')
+                    } else {
+                        $('span', el).first().css('display', 'inline')
+                        $('span', el).last().css('display', 'none')
+                    }
+                    $(el).trigger('observe_toggled', [data.observing]);
                 }
-                $(el).trigger('observe_toggled', [data.observing]);
             }
         }, "json");
     }
+    $(function(){
+        $('.notification-observe-link').each(function(i, el){
+            $(el).trigger('observe_init', [$('span', el).last().is(":visible")]);
+        });
+    });
 </script>
