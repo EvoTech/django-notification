@@ -25,7 +25,7 @@ from django.contrib.contenttypes import generic
 
 from notification import backends
 from notification.message import encode_message
-from notification.signals import should_deliver
+from notification.signals import should_deliver, delivered
 from notification.utils import permission_by_label
 
 try:
@@ -334,6 +334,7 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
             result=result,
             recipient=user,
             label=label,
+            notice_type=notice_type,
             extra_context=extra_context,
             sender_user=sender
         )
@@ -354,6 +355,13 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
         for backend in list(NOTIFICATION_BACKENDS.values()):
             if backend.can_send(user, notice_type):
                 backend.deliver(user, sender, notice_type, extra_context)
+                delivered.send(
+                    sender=Notice,
+                    recipient=user,
+                    notice_type=notice_type,
+                    extra_context=extra_context,
+                    sender_user=sender
+                )
     
     # reset environment to original language
     activate(current_language)
