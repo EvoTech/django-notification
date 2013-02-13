@@ -329,7 +329,7 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
                 NoticeUid.objects.create(notice_uid=notice_uid, recipient=user)
 
         result = {'pass': True}
-        should_deliver.send(
+        results = should_deliver.send(
             sender=Notice,
             result=result,
             recipient=user,
@@ -339,6 +339,8 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
             sender_user=sender
         )
         if not result['pass']:
+            continue
+        if False in [i[1] for i in results]:
             continue
 
         # get user language for user from language store defined in
