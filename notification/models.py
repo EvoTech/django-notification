@@ -354,7 +354,7 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
             # activate the user's language
             activate(language)
         
-        for backend in list(NOTIFICATION_BACKENDS.values()):
+        for (medium_id, backend_label), backend in list(NOTIFICATION_BACKENDS.items()):
             if backend.can_send(user, notice_type):
                 backend.deliver(user, sender, notice_type, extra_context)
                 delivered.send(
@@ -362,7 +362,10 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
                     recipient=user,
                     notice_type=notice_type,
                     extra_context=extra_context,
-                    sender_user=sender
+                    sender_user=sender,
+                    medium_id=medium_id,
+                    backend_label=backend_label,
+                    backend=backend
                 )
     
     # reset environment to original language
