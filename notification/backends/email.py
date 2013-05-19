@@ -62,8 +62,8 @@ class EmailBackend(backends.BaseBackend):
             "full.html",
         ), notice_type.label, context)
 
-        # Fix me. Is it exists a better way to detect is_html?
         # Chicking, is it default full.html?
+        # Fix me. Is it exists a better way to detect is_html?
         # Add marker "<!-- default template //-->"?
         if messages['full.html'].strip() != ugettext(notice_type.display).strip():
             is_html = True
