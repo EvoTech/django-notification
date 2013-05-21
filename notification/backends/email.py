@@ -2,7 +2,7 @@ from __future__ import absolute_import, unicode_literals
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core import urlresolvers
-from django.core.signing import Signer
+from django.core import signing
 from django.db.models.loading import get_app
 from django.template import Context
 from django.template.loader import render_to_string
@@ -56,14 +56,14 @@ class EmailBackend(backends.BaseBackend):
             root_url,
             urlresolvers.reverse(
                 'notificaton_unsubscribe',
-                args=[self.medium_id, Signer().sign(recipient.pk), notice_type.label]
+                args=[signing.dumps([recipient.pk, self.medium_id, notice_type.label]), ]
             )
         )
         unsubscribe_all_url = "{0}{1}".format(
             root_url,
             urlresolvers.reverse(
                 'notificaton_unsubscribe',
-                args=[self.medium_id, Signer().sign(recipient.pk)]
+                args=[signing.dumps([recipient.pk, self.medium_id, None]), ]
             )
         )
 

@@ -1,11 +1,12 @@
 from __future__ import absolute_import, unicode_literals
 import json
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.syndication.views import feed
 from django.core.urlresolvers import reverse
-from django.core.signing import Signer, BadSignature
+from django.core import signing
 from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.shortcuts import render_to_response, get_object_or_404, render
 from django.template import RequestContext
@@ -17,6 +18,7 @@ from notification.models import (NOTICE_MEDIA, Notice, NoticeType,
 from notification.decorators import basic_auth_required, simple_basic_auth_callback
 from notification.feeds import NoticeUserFeed
 
+UNSUBSCRIBE_TIMEOUT = getattr(settings, "NOTIFICATION_UNSUBSCRIBE_TIMEOUT", 2*24*3600)
 
 @basic_auth_required(realm="Notices Feed", callback_func=simple_basic_auth_callback)
 def feed_for_user(request):
@@ -250,12 +252,13 @@ def mark_all_seen(request):
     return HttpResponseRedirect(reverse("notification_notices"))
 
 
-def unsubscribe(request, medium_id, code, notice_type_label=None):
-    signer = Signer()
+def unsubscribe(request, code):
+    """unsubscribe"""
     try:
-        user = User.objects.get(id=signer.unsign(code))
-        medium_label = dict(NOTICE_MEDIA)[medium_id]
-    except (BadSignature, User.DoesNotExist, KeyError):
+        medium_id, user_id, notice_type_label = signing.loads(code, max_age=UNSUBSCRIBE_TIMEOUT)
+        user = User.objects.get(pk=user_id)
+        medium_label = dict(NOTICE_MEDIA)[str(medium_id)]
+    except (signing.BadSignature, User.DoesNotExist, ValueError, KeyError):
         raise Http404
 
     notice_settings = NoticeSetting.objects.filter(

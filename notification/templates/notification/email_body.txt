@@ -7,5 +7,5 @@
 --
 {% blocktrans %}Other notices{% endblocktrans %}: {{ notices_url }}
 {% blocktrans %}Notice settings{% endblocktrans %}: {{ settings_url }}
-{% blocktrans %}Unsubscribe for "{{ notice }}"{% endblocktrans %}: {{ unsubscribe_url }}
+{% blocktrans %}Unsubscribe for notice type "{{ notice }}"{% endblocktrans %}: {{ unsubscribe_url }}
 {% blocktrans %}Unsubscribe for all notices{% endblocktrans %}: {{ unsubscribe_all_url }}

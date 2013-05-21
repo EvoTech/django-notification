@@ -9,6 +9,5 @@ urlpatterns = patterns("notification.views",
     url(r"^(\d+)/$", "single", name="notification_notice"),
     url(r"^feed/$", "feed_for_user", name="notification_feed_for_user"),
     url(r"^mark_all_seen/$", "mark_all_seen", name="notification_mark_all_seen"),
-    url(r'^unsubscribe/(\w+)/([^/]+)/(\w+)/$', "unsubscribe", name="notificaton_unsubscribe"),
-    url(r'^unsubscribe/(\w+)/([^/]+)/$', "unsubscribe", name="notificaton_unsubscribe"),
+    url(r'^unsubscribe/(.+)/$', "unsubscribe", name="notificaton_unsubscribe"),
 )
