@@ -1,0 +1,19 @@
+{% extends "notification/base.html" %}
+
+{% load i18n %}
+
+{% block head_title %}{% trans "You have been unsubscribed" %}{% endblock %}
+
+{% block body %}
+    <div>
+        {% trans "You have been unsubscribed for next notifications" %}:
+
+        {% if notice_settings %}
+        <ul>
+            {% for row in notice_settings %}
+                <li>{% trans row.get_medium_display %}: {% trans row.notice_type.display %}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+{% endblock %}

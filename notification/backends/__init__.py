@@ -8,14 +8,14 @@ from django.core import exceptions
 from .base import BaseBackend
 
 # mostly for backend compatibility
-default_backends = {
+DEFAULT_BACKENDS = {
     "0": ("site", "notification.backends.site.SiteBackend"),
     "1": ("email", "notification.backends.email.EmailBackend"),
 }
 
 def load_backends():
     backends = []
-    for medium_id, bits in getattr(settings, "NOTIFICATION_BACKENDS", default_backends).items():
+    for medium_id, bits in getattr(settings, "NOTIFICATION_BACKENDS", DEFAULT_BACKENDS).items():
         if len(bits) == 2:
             label, backend_path = bits
             spam_sensitivity = None

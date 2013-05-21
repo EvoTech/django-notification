@@ -1,7 +1,8 @@
 from __future__ import absolute_import, unicode_literals
 from django.conf import settings
 from django.contrib.sites.models import Site
-from django.core.urlresolvers import reverse
+from django.core import urlresolvers
+from django.core.signing import Signer
 from django.db.models.loading import get_app
 from django.template import Context
 from django.template.loader import render_to_string
@@ -29,33 +30,58 @@ DEFAULT_HTTP_PROTOCOL = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http")
 
 class EmailBackend(backends.BaseBackend):
     spam_sensitivity = 2
-    
+
     def can_send(self, user, notice_type):
         can_send = super(EmailBackend, self).can_send(user, notice_type)
         if can_send and user.email and '@' in user.email and not user.email.startswith('__'):
             return True
         return False
-        
+
     def deliver(self, recipient, sender, notice_type, extra_context):
         # TODO: require this to be passed in extra_context
         current_site = Site.objects.get_current()
-        notices_url = "{0}://{1}{2}".format(
+        root_url = "{0}://{1}".format(
             DEFAULT_HTTP_PROTOCOL,
-            str(Site.objects.get_current()),
-            reverse("notification_notices"),
+            str(Site.objects.get_current())
         )
-        
+        notices_url = "{0}{1}".format(
+            root_url,
+            urlresolvers.reverse("notification_notices"),
+        )
+        settings_url = "{0}{1}".format(
+            root_url,
+            urlresolvers.reverse("notification_notice_settings"),
+        )
+        unsubscribe_url = "{0}{1}".format(
+            root_url,
+            urlresolvers.reverse(
+                'notificaton_unsubscribe',
+                args=[self.medium_id, Signer().sign(recipient.pk), notice_type.label]
+            )
+        )
+        unsubscribe_all_url = "{0}{1}".format(
+            root_url,
+            urlresolvers.reverse(
+                'notificaton_unsubscribe',
+                args=[self.medium_id, Signer().sign(recipient.pk)]
+            )
+        )
+
         # update context with user specific translations
         context = Context({
             "user": recipient,  # Old compatible
             "recipient": recipient,
             "sender": sender,
             "notice": ugettext(notice_type.display),
+            "notice_type": notice_type,
             "notices_url": notices_url,
+            "settings_url": settings_url,
+            "unsubscribe_url": unsubscribe_url,
+            "unsubscribe_all_url": unsubscribe_all_url,
             "current_site": current_site,
         })
         context.update(extra_context)
-        
+
         messages = self.get_formatted_messages((
             "short.txt",
             "full.txt",
@@ -73,13 +99,15 @@ class EmailBackend(backends.BaseBackend):
         subject = "".join(render_to_string("notification/email_subject.txt", {
             "message": messages["short.txt"],
         }, context).splitlines())
-        
+
         body = render_to_string("notification/email_body.txt", {
             "message": messages["full.txt"],
         }, context)
 
-        body_html = messages['full.html']
-        
+        body_html = render_to_string("notification/email_body.html", {
+            "message": messages["full.html"],
+        }, context)
+
         if not is_html:
             send_mail(subject, body, settings.DEFAULT_FROM_EMAIL,
                       [recipient.email])
