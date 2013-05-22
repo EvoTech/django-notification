@@ -2,7 +2,7 @@
 {% load i18n %}
 {% endspaceless %}{% blocktrans %}You have received the following notice from {{ current_site }}{% endblocktrans %}:
 
-{{ message }}
+{% spaceless %}{{ message }}{% endspaceless %}
 
 --
 {% blocktrans %}Other notices{% endblocktrans %}: {{ notices_url }}
