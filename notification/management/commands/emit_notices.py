@@ -1,16 +1,18 @@
-from __future__ import absolute_import, unicode_literals
-
 import logging
-
-from django.core.management.base import NoArgsCommand
-
+from optparse import make_option
+from django.core.management.base import BaseCommand
 from notification.engine import send_all
 
-class Command(NoArgsCommand):
+
+class Command(BaseCommand):
     help = "Emit queued notices."
-    
-    def handle_noargs(self, **options):
+
+    option_list = BaseCommand.option_list + (
+        make_option('-w', '--workers', type='int',
+                    help='Number of workers used to emit notices', default=1),
+    )
+
+    def handle(self, *args, **options):
         logging.basicConfig(level=logging.DEBUG, format="%(message)s")
         logging.info("-" * 72)
-        send_all()
-    
+        send_all(options['workers'])

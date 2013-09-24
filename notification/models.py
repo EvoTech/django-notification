@@ -288,6 +288,7 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
     You can pass in on_site=False to prevent the notice emitted from being
     displayed on the site.
     """
+    sent = {}
     if extra_context is None:
         extra_context = {}
 
@@ -364,9 +365,12 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
                     backend_label=backend_label,
                     backend=backend
                 )
+                sent.setdefault(backend_label, 0)
+                sent[backend_label] += 1
 
     # reset environment to original language
     activate(current_language)
+    return sent
 
 
 def send(*args, **kwargs):
