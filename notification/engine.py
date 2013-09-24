@@ -4,6 +4,8 @@ import time
 import logging
 import traceback
 from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
+# from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 try:
     import cPickle as pickle
@@ -15,6 +17,7 @@ from django.core.mail import mail_admins
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
+from django.db import connections
 
 from .lockfile import FileLock, AlreadyLocked, LockTimeout
 
@@ -28,7 +31,7 @@ LOCK_WAIT_TIMEOUT = getattr(settings, "NOTIFICATION_LOCK_WAIT_TIMEOUT", -1)
 logger = logging.getLogger(__name__)
 
 
-def send_all(workers=1):
+def send_all(workers=1, processes=False):
     lock = FileLock("send_notices")
 
     logger.debug("acquiring lock...")
@@ -46,7 +49,15 @@ def send_all(workers=1):
     start_time = time.time()
 
     if workers > 1:
-        pool = Pool(processes=workers)
+        if processes:
+            logger.debug("Starting {0} Process workers.".format(workers))
+            for conn_alias in connections:
+                connections[conn_alias].close()
+            pool = Pool(processes=workers)
+
+        else:
+            logger.debug("Starting {0} Thread workers.".format(workers))
+            pool = ThreadPool(processes=workers)
 
     try:
         # nesting the try statement to be Python 2.4
