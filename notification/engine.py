@@ -3,6 +3,7 @@ import sys
 import time
 import logging
 import traceback
+from datetime import datetime
 from multiprocessing import Pool
 from multiprocessing.pool import ThreadPool
 # from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
@@ -27,6 +28,7 @@ from notification import models as notification
 # lock timeout value. how long to wait for the lock to become available.
 # default behavior is to never wait for the lock to be available.
 LOCK_WAIT_TIMEOUT = getattr(settings, "NOTIFICATION_LOCK_WAIT_TIMEOUT", -1)
+NOTICEUID_MAX_SIZE = getattr(settings, "NOTIFICATION_NOTICEUID_MAX_SIZE", 100000)
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +48,7 @@ def send_all(workers=1, processes=False):
     logger.debug("acquired.")
 
     batches, sent = 0, {}
+    logger.debug("started at %s", datetime.now())
     start_time = time.time()
 
     if workers > 1:
@@ -83,6 +86,15 @@ def send_all(workers=1, processes=False):
 
                 queued_batch.delete()
                 batches += 1
+
+            uid_qs = notification.NoticeUid.objects.all()
+            uid_size = uid_qs.count()
+            if uid_size > NOTICEUID_MAX_SIZE:
+                logger.debug("NoticeUid size is {0}, clearing...".format(uid_size))
+                uid_step = min(int(NOTICEUID_MAX_SIZE * 0.1), 1000)
+                uid_min = uid_qs.order_by("pk")[uid_step].pk
+                uid_qs.filter(pk__lt=uid_min).delete()
+
         except:
             # get the exception
             exc_class, e, t = sys.exc_info()
@@ -93,9 +105,8 @@ def send_all(workers=1, processes=False):
             mail_admins(subject, message, fail_silently=True)
             # log it as critical
             logger.critical("an exception occurred: {0!r}".format(e))
+
     finally:
-        if notification.NoticeUid.objects.all().count() > 5000000:
-            notification.NoticeUid.objects.all().delete()
         logger.debug("releasing lock...")
         lock.release()
         logger.debug("released.")
@@ -103,6 +114,7 @@ def send_all(workers=1, processes=False):
     logger.info("")
     logger.info("{0} batches, {1} sent".format(batches, sent))
     logger.info("done in {0:.2f} seconds".format(time.time() - start_time))
+    logger.debug("done at %s", datetime.now())
 
 
 def _send_batch_part(users, label, extra_context, on_site, sender):
