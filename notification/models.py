@@ -15,13 +15,13 @@ from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language, activate
 
-from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 
 from notification import backends
 from notification.message import encode_message
+from notification.managers import NoticeManager, ObservedItemManager, QueryParametersManager
 from notification.signals import should_deliver, delivered
 from notification.utils import permission_by_label
 
@@ -96,54 +96,6 @@ def get_notification_setting(user, notice_type, medium):
 
 def should_send(user, notice_type, medium):
     return get_notification_setting(user, notice_type, medium).send
-
-
-class NoticeManager(models.Manager):
-
-    def notices_for(self, user, archived=False, unseen=None, on_site=None, sent=False):
-        """
-        returns Notice objects for the given user.
-
-        If archived=False, it only include notices not archived.
-        If archived=True, it returns all notices for that user.
-
-        If unseen=None, it includes all notices.
-        If unseen=True, return only unseen notices.
-        If unseen=False, return only seen notices.
-        """
-        if sent:
-            lookup_kwargs = {"sender": user}
-        else:
-            lookup_kwargs = {"recipient": user}
-        qs = self.filter(**lookup_kwargs)
-        if not archived:
-            self.filter(archived=archived)
-        if unseen is not None:
-            qs = qs.filter(unseen=unseen)
-        if on_site is not None:
-            qs = qs.filter(on_site=on_site)
-        return qs
-
-    def unseen_count_for(self, recipient, **kwargs):
-        """
-        returns the number of unseen notices for the given user but does not
-        mark them seen
-        """
-        return self.notices_for(recipient, unseen=True, **kwargs).count()
-
-    def received(self, recipient, **kwargs):
-        """
-        returns notices the given recipient has recieved.
-        """
-        kwargs["sent"] = False
-        return self.notices_for(recipient, **kwargs)
-
-    def sent(self, sender, **kwargs):
-        """
-        returns notices the given sender has sent
-        """
-        kwargs["sent"] = True
-        return self.notices_for(sender, **kwargs)
 
 
 class NoticeUid(models.Model):
@@ -295,23 +247,7 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
     notice_type = NoticeType.objects.get(label=label)
     notice_uid = extra_context.get('notice_uid', None)
 
-    protocol = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http")
-    current_site = Site.objects.get_current()
-
-    notices_url = "{0}://{1}{2}".format(
-        protocol,
-        str(current_site),
-        reverse("notification_notices"),
-    )
-
     current_language = get_language()
-
-    formats = (
-        "short.txt",
-        "full.txt",
-        "notice.html",
-        "full.html",
-    )  # TODO make formats configurable
 
     for user in users:
         obj = extra_context.get('context_object',
@@ -409,23 +345,6 @@ def queue(users, label, extra_context=None, on_site=True, sender=None):
         users = [u.pk if isinstance(u, User) else u for u in users]
     notices = [(users, label, extra_context, on_site, sender, ), ]
     NoticeQueueBatch(pickled_data=pickle.dumps(notices).encode("base64")).save()
-
-
-class ObservedItemManager(models.Manager):
-
-    def all_for(self, observed, signal):
-        """
-        Returns all ObservedItems for an observed object,
-        to be sent when a signal is emited.
-        """
-        content_type = ContentType.objects.get_for_model(observed)
-        observed_items = self.filter(content_type=content_type, object_id=observed.id, signal=signal)
-        return observed_items
-
-    def get_for(self, observed, observer, signal):
-        content_type = ContentType.objects.get_for_model(observed)
-        observed_item = self.get(content_type=content_type, object_id=observed.id, user=observer, signal=signal)
-        return observed_item
 
 
 class ObservedItem(models.Model):
@@ -533,12 +452,35 @@ def is_observing(observed, observer, signal="post_save"):
 def handle_observations(sender, instance, *args, **kw):
     send_observation_notices_for(instance)
 
+
+class QueryParameters(models.Model):
+    """Query Parameters
+
+    Allows to observe objects from search list with given query parametrs.
+    """
+    handler = models.CharField(max_length=100, db_index=True)
+    hash = models.BigIntegerField(db_index=True)
+    pickled_data = models.TextField()
+
+    objects = QueryParametersManager()
+
+    @property
+    def data(self):
+        """Gets data"""
+        return pickle.loads(str(self.pickled_data).decode("base64"))
+
+    @data.setter
+    def data(self, data):
+        """Sets data"""
+        self.pickled_data = pickle.dumps(data).encode("base64")
+        self.hash = QueryParameters.objects.make_hash(data)
+
 # Python 2.* compatible
 try:
     unicode
 except NameError:
     pass
 else:
-    for cls in (NoticeType, NoticeUid, Notice, ):
+    for cls in (NoticeType, NoticeUid, Notice, QueryParameters):
         cls.__unicode__ = cls.__str__
         cls.__str__ = lambda self: self.__unicode__().encode('utf-8')
