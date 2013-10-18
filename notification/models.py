@@ -464,6 +464,9 @@ class QueryParameters(models.Model):
 
     objects = QueryParametersManager()
 
+    class Meta:
+        unique_together = (('handler', 'hash'),)
+
     @property
     def data(self):
         """Gets data"""

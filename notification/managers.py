@@ -71,6 +71,19 @@ class ObservedItemManager(models.Manager):
 class QueryParametersManager(models.Manager):
     """QueryParameters Manager"""
 
+    def get_for(self, handler, data):
+        try:
+            return self.get(
+                handler=handler,
+                hash=self.make_hash(data)
+            )
+        except self.model.DoesNotExist:
+            obj = self.model()
+            obj.handler = handler
+            obj.data = data
+            obj.save()
+            return obj
+
     def make_hash(self, obj):
         """
         Makes a hash from a dictionary, list, tuple or set to any level, that
