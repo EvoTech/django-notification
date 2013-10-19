@@ -1,6 +1,15 @@
+from __future__ import absolute_import, unicode_literals
 import copy
 from django.db import models
 from django.contrib.contenttypes.models import ContentType
+
+try:
+    str = unicode  # Python 2.* compatible
+    string_types = (basestring,)
+    integer_types = (int, long)
+except NameError:
+    string_types = (str,)
+    integer_types = (int,)
 
 
 class NoticeManager(models.Manager):
@@ -68,10 +77,14 @@ class ObservedItemManager(models.Manager):
         return observed_item
 
 
-class QueryParametersManager(models.Manager):
-    """QueryParameters Manager"""
+class QueryDataManager(models.Manager):
+    """QueryData Manager"""
 
     def get_for(self, handler, data):
+        """Returns QueryData instance for given handler and data"""
+        if not isinstance(handler, string_types):
+            handler = "{0}.{1}".format(handler.__module__, handler.__name__)
+        data = self.prepare_data(data)
         try:
             return self.get(
                 handler=handler,
@@ -87,8 +100,8 @@ class QueryParametersManager(models.Manager):
     def make_hash(self, obj):
         """
         Makes a hash from a dictionary, list, tuple or set to any level, that
-        contains only other hashable types (including any lists, tuples, sets, and
-        dictionaries).
+        contains only other hashable types (including any lists, tuples, sets,
+        and dictionaries).
         """
         if isinstance(obj, (tuple, list)):
             return tuple(sorted([self.make_hash(e) for e in obj]))
@@ -100,8 +113,33 @@ class QueryParametersManager(models.Manager):
             new_obj = copy.deepcopy(obj)
             for k, v in new_obj.items():
                 new_obj[k] = self.make_hash(v)
+            return hash(frozenset(new_obj.items()))
 
-        else:
-            return hash(obj)
+        return hash(obj)
 
-        return hash(frozenset(new_obj.items()))
+    def prepare_data(self, obj):
+        """Prepares data.
+
+        We keep empty values, because they can override
+        the default value of form.
+        """
+        if isinstance(obj, (tuple, list)):
+            return tuple([self.prepare_data(e) for e in obj])
+
+        elif isinstance(obj, set):
+            return frozenset([self.prepare_data(e) for e in obj])
+
+        elif isinstance(obj, dict):
+            new_obj = copy.deepcopy(obj)
+            for k, v in new_obj.items():
+                new_obj[k] = self.prepare_data(v)
+            return new_obj
+
+        elif isinstance(obj, models.Model):
+            # Replace model instance to primary key.
+            # Model can be changed during lifetime of pickled_data,
+            # that will cause an error.
+            return obj.pk
+
+        # Force to str()?
+        return obj

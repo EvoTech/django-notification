@@ -1,4 +1,5 @@
 from __future__ import absolute_import, unicode_literals
+import sys
 import datetime
 
 try:
@@ -21,7 +22,7 @@ from django.contrib.contenttypes import generic
 
 from notification import backends
 from notification.message import encode_message
-from notification.managers import NoticeManager, ObservedItemManager, QueryParametersManager
+from notification.managers import NoticeManager, ObservedItemManager, QueryDataManager
 from notification.signals import should_deliver, delivered
 from notification.utils import permission_by_label
 
@@ -453,19 +454,26 @@ def handle_observations(sender, instance, *args, **kw):
     send_observation_notices_for(instance)
 
 
-class QueryParameters(models.Model):
-    """Query Parameters
+class QueryData(models.Model):
+    """Query Data
 
-    Allows to observe objects from search list with given query parametrs.
+    Allows to observe objects from search list with given query data.
     """
     handler = models.CharField(max_length=100, db_index=True)
     hash = models.BigIntegerField(db_index=True)
     pickled_data = models.TextField()
 
-    objects = QueryParametersManager()
+    objects = QueryDataManager()
 
     class Meta:
         unique_together = (('handler', 'hash'),)
+
+    def __str__(self):
+        return getattr(
+            self.handler_instance,
+            'get_observed_name',
+            lambda: "{0}: {1}".format(type(self).__name__, str(self.data))
+        )()
 
     @property
     def data(self):
@@ -476,7 +484,17 @@ class QueryParameters(models.Model):
     def data(self, data):
         """Sets data"""
         self.pickled_data = pickle.dumps(data).encode("base64")
-        self.hash = QueryParameters.objects.make_hash(data)
+        self.hash = QueryData.objects.make_hash(data)
+
+    @property
+    def handler_instance(self):
+        """Returns handler instance."""
+        mod_name, obj_name = self.handler.rsplit('.', 1)
+        __import__(mod_name)
+        mod = sys.modules[mod_name]
+        handler = getattr(mod, obj_name)
+        # In simplest case, handler can be a dict.
+        return handler(self.data)
 
 # Python 2.* compatible
 try:
@@ -484,6 +502,6 @@ try:
 except NameError:
     pass
 else:
-    for cls in (NoticeType, NoticeUid, Notice, QueryParameters):
+    for cls in (NoticeType, NoticeUid, Notice, QueryData):
         cls.__unicode__ = cls.__str__
         cls.__str__ = lambda self: self.__unicode__().encode('utf-8')
