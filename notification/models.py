@@ -475,6 +475,13 @@ class QueryData(models.Model):
             lambda: "{0}: {1}".format(type(self).__name__, str(self.data))
         )()
 
+    def get_absolute_url(self):
+        return getattr(
+            self.handler_instance,
+            'get_observed_url',
+            lambda: "#"
+        )()
+
     @property
     def data(self):
         """Gets data"""
