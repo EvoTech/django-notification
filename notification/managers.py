@@ -80,6 +80,8 @@ class ObservedItemManager(models.Manager):
 class QueryDataManager(models.Manager):
     """QueryData Manager"""
 
+    ignored_values = (None, "")
+
     def get_for(self, handler, data):
         """Returns QueryData instance for given handler and data"""
         if not isinstance(handler, string_types):
@@ -118,21 +120,25 @@ class QueryDataManager(models.Manager):
         return hash(obj)
 
     def prepare_data(self, obj):
-        """Prepares data.
-
-        We keep empty values, because they can override
-        the default value of form.
-        """
+        """Prepares data."""
+        # Do we need keep empty values, because they can override
+        # the default value of form???
+        # On the other hand, during lifetime of object,
+        # the number of parameters can be changed.
+        # I think, that better to remove the empty values
+        # to be independent of code changes.
+        ignored_values = self.ignored_values
         if isinstance(obj, (tuple, list)):
-            return tuple([self.prepare_data(e) for e in obj])
+            return tuple([self.prepare_data(e) for e in obj if obj not in ignored_values])
 
         elif isinstance(obj, set):
-            return frozenset([self.prepare_data(e) for e in obj])
+            return frozenset([self.prepare_data(e) for e in obj if obj not in ignored_values])
 
         elif isinstance(obj, dict):
             new_obj = copy.deepcopy(obj)
             for k, v in new_obj.items():
-                new_obj[k] = self.prepare_data(v)
+                if v not in ignored_values:
+                    new_obj[k] = self.prepare_data(v)
             return new_obj
 
         elif isinstance(obj, models.Model):
