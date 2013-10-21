@@ -80,7 +80,7 @@ class ObservedItemManager(models.Manager):
 class QueryDataManager(models.Manager):
     """QueryData Manager"""
 
-    ignored_values = (None, "")
+    ignored_values = (None, "", [], (), {}, set(), frozenset())
 
     def get_for(self, handler, data):
         """Returns QueryData instance for given handler and data"""
@@ -129,16 +129,30 @@ class QueryDataManager(models.Manager):
         # to be independent of code changes.
         ignored_values = self.ignored_values
         if isinstance(obj, (tuple, list)):
-            return tuple([self.prepare_data(e) for e in obj if obj not in ignored_values])
+            new_obj = []
+            for v in obj:
+                new_v = self.prepare_data(v)
+                if new_v in ignored_values:
+                    continue
+                new_obj.append(new_v)
+            return tuple(new_obj)
 
-        elif isinstance(obj, set):
-            return frozenset([self.prepare_data(e) for e in obj if obj not in ignored_values])
+        elif isinstance(obj, (set, frozenset)):
+            new_obj = []
+            for v in obj:
+                new_v = self.prepare_data(v)
+                if new_v in ignored_values:
+                    continue
+                new_obj.append(new_v)
+            return frozenset(new_obj)
 
         elif isinstance(obj, dict):
             new_obj = copy.deepcopy(obj)
             for k, v in new_obj.items():
-                if v not in ignored_values:
-                    new_obj[k] = self.prepare_data(v)
+                new_v = self.prepare_data(v)
+                if new_v in ignored_values:
+                    continue
+                new_obj[k] = self.prepare_data(v)
             return new_obj
 
         elif isinstance(obj, models.Model):
