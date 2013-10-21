@@ -501,7 +501,9 @@ class QueryData(models.Model):
         mod = sys.modules[mod_name]
         handler = getattr(mod, obj_name)
         # In simplest case, handler can be a dict.
-        return handler(self.data)
+        obj = handler(self.data)
+        obj.is_valid()
+        return obj
 
 # Python 2.* compatible
 try:
