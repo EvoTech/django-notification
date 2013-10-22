@@ -471,14 +471,14 @@ class QueryData(models.Model):
     def __str__(self):
         return getattr(
             self.handler_instance,
-            'get_observed_name',
+            'get_verbose_name',
             lambda: "{0}: {1}".format(type(self).__name__, str(self.data))
         )()
 
     def get_absolute_url(self):
         return getattr(
             self.handler_instance,
-            'get_observed_url',
+            'get_absolute_url',
             lambda: "#"
         )()
 
