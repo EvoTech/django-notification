@@ -85,6 +85,8 @@ class QueryDataManager(models.Manager):
     def get_for(self, handler, data):
         """Returns QueryData instance for given handler and data"""
         if not isinstance(handler, string_types):
+            if not isinstance(handler, type):
+                handler = type(handler)
             handler = "{0}.{1}".format(handler.__module__, handler.__name__)
         data = self.prepare_data(data)
         try:
@@ -112,8 +114,8 @@ class QueryDataManager(models.Manager):
             return frozenset([self.make_hash(e) for e in obj])
 
         elif isinstance(obj, dict):
-            new_obj = copy.deepcopy(obj)
-            for k, v in new_obj.items():
+            new_obj = {}
+            for k, v in obj.items():
                 new_obj[k] = self.make_hash(v)
             return hash(frozenset(new_obj.items()))
 
@@ -147,8 +149,8 @@ class QueryDataManager(models.Manager):
             return frozenset(new_obj)
 
         elif isinstance(obj, dict):
-            new_obj = copy.deepcopy(obj)
-            for k, v in new_obj.items():
+            new_obj = {}
+            for k, v in obj.items():
                 new_v = self.prepare_data(v)
                 if new_v in ignored_values:
                     continue

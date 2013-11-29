@@ -1,7 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 from django.contrib import admin
 
-from notification.models import NoticeType, NoticeSetting, Notice, ObservedItem, NoticeQueueBatch
+from notification.models import NoticeType, NoticeSetting, Notice, ObservedItem, NoticeQueueBatch, QueryData
 
 
 class NoticeTypeAdmin(admin.ModelAdmin):
@@ -31,8 +31,14 @@ class ObservedItemAdmin(admin.ModelAdmin):
     search_fields = ['user__username', 'user__email', ]
     raw_id_fields = ["user", ]
 
+
+class QueryDataAdmin(admin.ModelAdmin):
+    list_display = ["handler", "hash", "data"]
+    list_filter = ["handler", ]
+
 admin.site.register(NoticeQueueBatch)
 admin.site.register(NoticeType, NoticeTypeAdmin)
 admin.site.register(NoticeSetting, NoticeSettingAdmin)
 admin.site.register(Notice, NoticeAdmin)
 admin.site.register(ObservedItem, ObservedItemAdmin)
+admin.site.register(QueryData, QueryDataAdmin)
