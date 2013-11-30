@@ -25,7 +25,7 @@ class NoticeAdmin(admin.ModelAdmin):
 
 
 class ObservedItemAdmin(admin.ModelAdmin):
-    list_display = ["user", "content_type", "object_id", "observed_object",
+    list_display = ["pk", "user", "content_type", "object_id", "observed_object",
                     "notice_type", "signal", "added", ]
     list_filter = ["content_type", "notice_type", "signal", ]
     search_fields = ['user__username', 'user__email', ]
@@ -33,7 +33,7 @@ class ObservedItemAdmin(admin.ModelAdmin):
 
 
 class QueryDataAdmin(admin.ModelAdmin):
-    list_display = ["handler", "hash", "data"]
+    list_display = ["pk", "handler", "hash", "data"]
     list_filter = ["handler", ]
 
 admin.site.register(NoticeQueueBatch)
