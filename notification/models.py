@@ -54,6 +54,7 @@ class NoticeType(models.Model):
         return self.label
 
     class Meta:
+        ordering = ("label", )
         verbose_name = _("notice type")
         verbose_name_plural = _("notice types")
 
