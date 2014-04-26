@@ -306,8 +306,8 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
                 sent.setdefault(backend_label, 0)
                 sent[backend_label] += 1
 
-    # reset environment to original language
-    activate(current_language)
+        # reset environment to original language
+        activate(current_language)
     return sent
 
 
