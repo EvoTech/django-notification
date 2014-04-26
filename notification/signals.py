@@ -5,6 +5,10 @@ should_deliver = django.dispatch.Signal(providing_args=[
     "result", "recipient", "label", "notice_type",
     "extra_context", "sender_user",
 ])
+configure = django.dispatch.Signal(providing_args=[
+    "recipient", "label", "notice_type",
+    "extra_context", "sender_user",
+])
 delivered = django.dispatch.Signal(providing_args=[
     "recipient", "notice_type", "extra_context", "sender_user",
     "medium_id", "backend_label", "backend",

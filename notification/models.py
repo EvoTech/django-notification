@@ -1,29 +1,29 @@
 from __future__ import absolute_import, unicode_literals
 import sys
-import datetime
 
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
 
-from django.db import models
-from django.db.models.query import QuerySet, RawQuerySet
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured, PermissionDenied
-from django.core.urlresolvers import reverse
-from django.template.loader import render_to_string
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import get_language, activate
-
-from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
+from django.core.exceptions import ImproperlyConfigured, PermissionDenied
+from django.core.urlresolvers import reverse
+from django.db import models
+from django.db.models.query import QuerySet, RawQuerySet
+from django.template.loader import render_to_string
+from django.utils.translation import ugettext_lazy as _
+from django.utils import translation
+from django.utils import timezone
+
+from django.contrib.auth.models import User
 
 from notification import backends
 from notification.message import encode_message
 from notification.managers import NoticeManager, ObservedItemManager, QueryDataManager
-from notification.signals import should_deliver, delivered
+from notification.signals import should_deliver, delivered, configure
 from notification.utils import permission_by_label
 
 try:
@@ -120,7 +120,7 @@ class Notice(models.Model):
     sender = models.ForeignKey(User, null=True, related_name="sent_notices", verbose_name=_("sender"))
     message = models.TextField(_("message"))
     notice_type = models.ForeignKey(NoticeType, verbose_name=_("notice type"))
-    added = models.DateTimeField(_("added"), default=datetime.datetime.now, db_index=True)
+    added = models.DateTimeField(_("added"), auto_now_add=True, db_index=True)
     unseen = models.BooleanField(_("unseen"), default=True, db_index=True)
     archived = models.BooleanField(_("archived"), default=False, db_index=True)
     on_site = models.BooleanField(_("on site"), db_index=True)
@@ -249,7 +249,8 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
     notice_type = NoticeType.objects.get(label=label)
     notice_uid = extra_context.get('notice_uid', None)
 
-    current_language = get_language()
+    current_language = translation.get_language()
+    current_timezone = timezone.get_current_timezone()
 
     for user in users:
         obj = extra_context.get('context_object',
@@ -264,6 +265,15 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
             except NoticeUid.DoesNotExist:
                 NoticeUid.objects.create(notice_uid=notice_uid, recipient=user)
 
+        # Deprecated
+        # get user language for user from language store defined in
+        # NOTIFICATION_LANGUAGE_MODULE setting
+        try:
+            language = get_notification_language(user)
+        except LanguageStoreNotAvailable:
+            language = None
+
+        # Deprecated
         result = {'pass': True}
         results = should_deliver.send(
             sender=Notice,
@@ -279,35 +289,44 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
         if False in [i[1] for i in results]:
             continue
 
-        # get user language for user from language store defined in
-        # NOTIFICATION_LANGUAGE_MODULE setting
-        try:
-            language = get_notification_language(user)
-        except LanguageStoreNotAvailable:
-            language = None
+        results = configure.send(
+            sender=Notice,
+            recipient=user,
+            label=label,
+            notice_type=notice_type,
+            extra_context=extra_context,
+            sender_user=sender
+        )
+        configs = [i[1] for i in results if i[1]]
+        configs.sort(key=lambda x: x.get('order', 0))
+        config = {
+            'language': language or current_language,
+            'timezone': current_timezone,
+            'send': True,
+        }
+        for i in configs:
+            config.update(i)
 
-        if language is not None:
-            # activate the user's language
-            activate(language)
+        if not config['send']:
+            continue
 
-        for (medium_id, backend_label), backend in list(NOTIFICATION_BACKENDS.items()):
-            if backend.can_send(user, notice_type):
-                backend.deliver(user, sender, notice_type, extra_context)
-                delivered.send(
-                    sender=Notice,
-                    recipient=user,
-                    notice_type=notice_type,
-                    extra_context=extra_context,
-                    sender_user=sender,
-                    medium_id=medium_id,
-                    backend_label=backend_label,
-                    backend=backend
-                )
-                sent.setdefault(backend_label, 0)
-                sent[backend_label] += 1
+        with translation.override(config['language']), timezone.override(config['timezone']):
+            for (medium_id, backend_label), backend in list(NOTIFICATION_BACKENDS.items()):
+                if backend.can_send(user, notice_type):
+                    backend.deliver(user, sender, notice_type, extra_context)
+                    delivered.send(
+                        sender=Notice,
+                        recipient=user,
+                        notice_type=notice_type,
+                        extra_context=extra_context,
+                        sender_user=sender,
+                        medium_id=medium_id,
+                        backend_label=backend_label,
+                        backend=backend
+                    )
+                    sent.setdefault(backend_label, 0)
+                    sent[backend_label] += 1
 
-        # reset environment to original language
-        activate(current_language)
     return sent
 
 
@@ -344,7 +363,7 @@ def queue(users, label, extra_context=None, on_site=True, sender=None):
         users = list(users.values_list("pk", flat=True))
         # users = users.query  # ???
     else:
-        users = [u.pk if isinstance(u, User) else u for u in users]
+        users = [u.pk if isinstance(u, models.Model) else u for u in users]
     notices = [(users, label, extra_context, on_site, sender, ), ]
     NoticeQueueBatch(pickled_data=pickle.dumps(notices).encode("base64")).save()
 
@@ -359,7 +378,7 @@ class ObservedItem(models.Model):
 
     notice_type = models.ForeignKey(NoticeType, verbose_name=_("notice type"))
 
-    added = models.DateTimeField(_("added"), default=datetime.datetime.now, db_index=True)
+    added = models.DateTimeField(_("added"), auto_now_add=True, db_index=True)
 
     # the signal that will be listened to send the notice
     signal = models.CharField(
