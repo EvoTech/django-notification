@@ -299,6 +299,7 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
         )
         configs = [i[1] for i in results if i[1]]
         configs.sort(key=lambda x: x.get('order', 0))
+        # TODO: Let pass config as argument of function, or as item of extra_context???
         config = {
             'language': language or current_language,
             'timezone': current_timezone,
